@@ -1,0 +1,16 @@
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>Wladi.ServiceTemplate.CSharp</id>
+    <version>0.1.0</version>
+    <description>
+      Default of a service 
+    </description>
+    <authors>Wladimir Ferreira Junior</authors>
+    <packageTypes>
+      <packageType name="Template" />
+    </packageTypes>
+  </metadata>
+  <files>
+    <file src="**" exclude="README.md;**/.git/**;**/_rels/**;**/package/**;'[Content_Types].xml';**/Wladi.ServiceTemplate.CSharp.nuspec;**\bin\**\*;**\obj\**\*;**\*.user;**\*.log;**\.vscode\**\*;**\.vs\**\*" />
+  </files>
+</package>

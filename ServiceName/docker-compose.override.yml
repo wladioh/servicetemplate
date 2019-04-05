@@ -1,0 +1,13 @@
+version: '3.4'
+
+services:
+  serviceName:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    build:
+      args:
+        RUNTIME_IMAGE_VERSION: aspnetcore-runtime
+        SDK_IMAGE_VERSION: sdk
+    volumes:
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro

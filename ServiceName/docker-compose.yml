@@ -1,0 +1,26 @@
+version: '3.4'
+
+services:
+  serviceName:
+    image: ${DOCKER_REGISTRY-}serviceName
+    container_name: ${DOCKER_REGISTRY-}serviceName
+    hostname: serviceName
+    build:
+      context: .
+      dockerfile: Src/Service.Api/Dockerfile
+      args:
+        RUNTIME_IMAGE_VERSION: aspnetcore-runtime-alpine
+        SDK_IMAGE_VERSION: sdk-alpine
+    environment:
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_HTTPS_PORT=49999
+      - NUGET_FALLBACK_PACKAGES=/root/.nuget/fallbackpackages
+    ports:
+      - "9999:80"
+      - "49999:443"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/liveness"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s

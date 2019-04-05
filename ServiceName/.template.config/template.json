@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Wladimir Ferreira Jr",
+  "classifications": [
+    "sln"
+  ],
+  "tags": {
+    "language": "C#"
+  },
+  "identity": "Wladi.ServiceTemplate.CSharp",
+  "name": "Service Template",
+  "sourceName": "serviceName",
+  "shortName": "service",
+  "symbols": {
+    "NugetToken": {
+      "type": "parameter",
+      "dataType": "string",
+      "defaultValue": "",
+      "replaces": "__NUGETTOKEN__",
+      "description": "Nuget Token"
+    },
+    "Port": {
+      "type": "parameter",
+      "dataType": "int",
+      "defaultValue": "5000",
+      "replaces": "9999",
+      "description": "Port"
+    }     
+  },
+  "sources": [
+    {
+      "exclude": [
+        "**/[Bb]in/**",
+        "**/[Oo]bj/**",
+        ".template.config/**/*",
+        "**/*.filelist",
+        "**/*.user",
+        "**/*.lock.json",
+        "**/.vs/**",
+        "**/.git/**",
+        "**/_rels/**",
+        "**/package/**",
+        "[Content_Types].xml",
+        "**/Linx.SolutionTemplate.CSharp.nuspec"
+      ]
+    }
+  ]
+}
