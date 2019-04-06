@@ -15,7 +15,7 @@
     "NugetToken": {
       "type": "parameter",
       "dataType": "string",
-      "defaultValue": "",
+      "defaultValue": "__NUGETTOKEN__",
       "replaces": "__NUGETTOKEN__",
       "description": "Nuget Token"
     },
@@ -25,7 +25,17 @@
       "defaultValue": "5000",
       "replaces": "9999",
       "description": "Port"
-    }     
+    },
+    "containerName":{
+      "type": "generated",
+      "generator": "casing",
+      "parameters": {
+        "source":"name",
+        "toLower": true
+      },
+      "replaces":"containername",
+      "description": "container name"
+    }
   },
   "sources": [
     {
@@ -41,7 +51,7 @@
         "**/_rels/**",
         "**/package/**",
         "[Content_Types].xml",
-        "**/Linx.SolutionTemplate.CSharp.nuspec"
+        "**/Wladi.ServiceTemplate.CSharp.nuspec"
       ]
     }
   ]
