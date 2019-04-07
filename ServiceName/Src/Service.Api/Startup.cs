@@ -5,7 +5,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Service.Api.Extensions;
+using Service.Infra.MessageBus;
+using Service.Infra.Network;
 
 namespace Service.Api
 {
@@ -32,6 +35,13 @@ namespace Service.Api
             services.AddHttpContextAccessor();
             services.AddDefaultSwagger();
             services.AddCorrelationId();
+            services.AddOptions();
+            services.Configure<EndpointsOptions>(Configuration.GetSection(EndpointsOptions.Section));
+            services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<EndpointsOptions>>().CurrentValue);
+            services.AddResilientRefit<EndpointsOptions>(Configuration, config =>
+                {
+                    config.Configure<IMockApi>(it => it.Mock);
+                });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

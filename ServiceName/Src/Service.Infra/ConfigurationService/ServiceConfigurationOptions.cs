@@ -1,4 +1,4 @@
-﻿namespace BuildBlock.Consul
+﻿namespace Service.Infra.ConfigurationService
 {
     public class ServiceConfigurationOptions
     {

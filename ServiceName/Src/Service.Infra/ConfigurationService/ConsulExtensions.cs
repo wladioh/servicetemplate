@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System;
+using System.Threading;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Threading;
 using Winton.Extensions.Configuration.Consul;
 
-namespace BuildBlock.Consul
+namespace Service.Infra.ConfigurationService
 {
     public static class ConsulExtensions
     {

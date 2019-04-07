@@ -2,7 +2,7 @@
 {
     public class RetryOptions
     {
-        public int MaxRetries { get; set; } = 5;
+        public int MaxRetries { get; set; } = 2;
         public int MaxDelay { get; set; } = 200;
     }
 }

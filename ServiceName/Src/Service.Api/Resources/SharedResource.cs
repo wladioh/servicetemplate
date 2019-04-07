@@ -1,4 +1,4 @@
-﻿namespace Service.Api
+﻿namespace Service.Api.Resources
 {
     /// <summary>
     /// Dummy class to group shared resources
