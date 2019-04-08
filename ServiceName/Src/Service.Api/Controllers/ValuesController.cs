@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
@@ -48,9 +47,12 @@ namespace Service.Api.Controllers
 
         // GET api/values/5
         [HttpGet("{id}")]
-        public ActionResult<string> Get(int id)
+        public async Task<IActionResult> Get(int id)
         {
-            return "value";
+            var re = await _mock.Get(id);
+            if (re.IsSuccessStatusCode)
+                return Ok(re.Content);
+            return BadRequest(re.Error.Content);
         }
 
         // POST api/values

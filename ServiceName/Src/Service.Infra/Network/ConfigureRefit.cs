@@ -41,7 +41,7 @@ namespace Service.Infra.Network
                     var configuration = provider.GetService<TConfiguration>();
                     var url = func?.Invoke(configuration);
                     client.BaseAddress = new Uri(url);
-                    client.Timeout = TimeSpan.FromMilliseconds(300);
+                    client.Timeout = TimeSpan.FromMilliseconds(3000);
                 })
                 .SetHandlerLifetime(TimeSpan.FromMinutes(5))  //Set lifetime to five minutes
                 .AddHttpMessageHandler<ValidateHeaderHandler>();
@@ -61,7 +61,7 @@ namespace Service.Infra.Network
             CancellationToken cancellationToken)
         {
             return await _policy.ExecuteAsync(
-                (context, token) => base.SendAsync(request, token), new Context(request.RequestUri.PathAndQuery), cancellationToken);
+                (context, token) =>  base.SendAsync(request, token), new Context(request.RequestUri.PathAndQuery), cancellationToken);
         }
     }
 }

@@ -37,7 +37,7 @@ namespace Service.Api
             services.AddOptions();
             services.Configure<EndpointsOptions>(Configuration.GetSection(EndpointsOptions.Section));
             services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<EndpointsOptions>>().CurrentValue);
-            services.AddRefitWithPolly<EndpointsOptions>(config =>
+            services.AddRefitWithPolly<EndpointsOptions>(Configuration, config =>
                 {
                     config.Configure<IMockApi>(it => it.Mock);
                 });

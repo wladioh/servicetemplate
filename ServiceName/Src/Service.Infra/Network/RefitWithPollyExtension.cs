@@ -12,9 +12,10 @@ namespace Service.Infra.Network
     public static class RefitWithPollyExtension
     {
         public static IServiceCollection AddRefitWithPolly<TConfig>(this IServiceCollection services,
+            IConfiguration configuration,
             Action<ConfigureRefit<TConfig>> action) where TConfig : class
         {
-            var configuration = services.BuildServiceProvider().GetService<IConfiguration>();
+           // var configuration = services.BuildServiceProvider().GetService<IConfiguration>();
             services.Configure<PollyOptions>(PollyOptions.Section, configuration);
             services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<PollyOptions>>().CurrentValue);
             services.AddPolicyRegistry();
