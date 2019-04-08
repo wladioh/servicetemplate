@@ -1,34 +1,39 @@
 ﻿using System;
-using System.Net.Http;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Polly.Caching;
 using Polly.Caching.Distributed;
 using Service.Infra.Network.Options;
 
 namespace Service.Infra.Network
 {
-    public static class RefitResilientExtension
+    public static class RefitWithPollyExtension
     {
-        public static IServiceCollection AddResilientRefit<TConfig>(this IServiceCollection services,
-            IConfiguration configuration, Action<ConfigureRefit<TConfig>> action) where TConfig : class
+        public static IServiceCollection AddRefitWithPolly<TConfig>(this IServiceCollection services,
+            Action<ConfigureRefit<TConfig>> action) where TConfig : class
         {
+            var configuration = services.BuildServiceProvider().GetService<IConfiguration>();
             services.Configure<PollyOptions>(PollyOptions.Section, configuration);
             services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<PollyOptions>>().CurrentValue);
-
-            services.AddDistributedMemoryCache(options =>
-            {
-                options.SizeLimit = Int64.MaxValue;
-            });
+            services.AddPolicyRegistry();
+            services.AddDistributedMemoryCache();
             services.AddSingleton(serviceProvider => serviceProvider
                 .GetRequiredService<IDistributedCache>()
                 .AsAsyncCacheProvider<string>());
-            services.AddSingleton<PollyPolicyFactory>();
+            services.AddTransient<ValidateHeaderHandler>();
+            services.AddSingleton<DefaultPolicy>();
             var config = new ConfigureRefit<TConfig>(services);
             action?.Invoke(config);
             return services;
+        }
+
+        public static IApplicationBuilder UseRefitWithPolly(this IApplicationBuilder app)
+        {
+            app.ApplicationServices.GetService<DefaultPolicy>()
+                .RegisterPolicy();
+            return app;
         }
 
         public static IServiceCollection ConfigureWatch<TConfiguration>(this IServiceCollection services, string sectionName,

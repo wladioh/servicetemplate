@@ -7,7 +7,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Service.Api.Extensions;
-using Service.Infra.MessageBus;
 using Service.Infra.Network;
 
 namespace Service.Api
@@ -38,7 +37,7 @@ namespace Service.Api
             services.AddOptions();
             services.Configure<EndpointsOptions>(Configuration.GetSection(EndpointsOptions.Section));
             services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<EndpointsOptions>>().CurrentValue);
-            services.AddResilientRefit<EndpointsOptions>(Configuration, config =>
+            services.AddRefitWithPolly<EndpointsOptions>(config =>
                 {
                     config.Configure<IMockApi>(it => it.Mock);
                 });
@@ -55,6 +54,7 @@ namespace Service.Api
             else
                 app.UseHsts();
             app.UseCorrelationId(new CorrelationIdOptions { UseGuidForCorrelationId = true });
+            app.UseRefitWithPolly();
             app.UseDefaultLocalization();
             app.UseDefaultHealthChecks();
             app.UseDefaultCors();

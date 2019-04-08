@@ -1,80 +1,64 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Polly;
 using Polly.Caching;
-using Polly.Caching.Distributed;
 using Polly.Caching.Serialization.Json;
 using Polly.Extensions.Http;
-using Polly.Wrap;
+using Polly.Registry;
 using Service.Infra.Network.Options;
 
 namespace Service.Infra.Network
 {
-    public class PollyPolicyFactory
+    public class DefaultPolicy
     {
-        private readonly HttpStatusCode[] _httpStatusCodesWorthRetrying = {
-            HttpStatusCode.RequestTimeout, // 408
-            HttpStatusCode.InternalServerError, // 500
-            HttpStatusCode.BadGateway, // 502
-            HttpStatusCode.ServiceUnavailable, // 503
-            HttpStatusCode.GatewayTimeout // 504
-        };
         private PollyOptions _options;
         private readonly ILogger<HttpClient> _logger;
         private readonly IAsyncCacheProvider<string> _cacheProvider;
-
-        private readonly ConcurrentDictionary<string, AsyncPolicyWrap<HttpResponseMessage>>
-            _policies = new ConcurrentDictionary<string, AsyncPolicyWrap<HttpResponseMessage>>();
-        public PollyPolicyFactory(PollyOptions options,
+        private readonly IPolicyRegistry<string> _policyRegistry;
+        public static string PolicyName = "DefaultPolicy";
+        public DefaultPolicy(PollyOptions options,
             IOptionsMonitor<PollyOptions> configurationChange, ILogger<HttpClient> logger,
-            IAsyncCacheProvider<string> cacheProvider)
+            IAsyncCacheProvider<string> cacheProvider, IPolicyRegistry<string> policyRegistry)
         {
             configurationChange.OnChange(ConfigurationChange_ConfigurationChanged);
             _options = options;
             _logger = logger;
             _cacheProvider = cacheProvider;
+            _policyRegistry = policyRegistry;
         }
         private void ConfigurationChange_ConfigurationChanged(PollyOptions options)
         {
             _options = options;
-            _policies.Clear();
+            _policyRegistry[PolicyName] = CreatePolicy();
         }
 
-        public AsyncPolicyWrap<HttpResponseMessage> CreatePolicy<T>()
+        public void RegisterPolicy()
         {
-            var key = typeof(T).FullName;
-            if (_policies.TryGetValue(key, out var policy))
-                return policy;
-            policy = CreatePolicy<T>(_options);
-            return _policies.TryAdd(key, policy) ? policy : _policies[key];
+            _policyRegistry[PolicyName] = CreatePolicy();
         }
 
-        private AsyncPolicyWrap<HttpResponseMessage> CreatePolicy<T>(PollyOptions options)
+        private IAsyncPolicy<HttpResponseMessage> CreatePolicy()
         {
 
-            var retrays = DecorrelatedJitter(options.Retry.MaxRetries, TimeSpan.FromMilliseconds(20),
-                TimeSpan.FromMilliseconds(options.Retry.MaxDelay));
+            var retries = GenerateJitter(_options.Retry.MaxRetries, TimeSpan.FromMilliseconds(20),
+                TimeSpan.FromMilliseconds(_options.Retry.MaxDelay));
             var retryPolicy =
                 HttpPolicyExtensions.HandleTransientHttpError()
-                    .OrResult(msg => _httpStatusCodesWorthRetrying.Contains(msg.StatusCode))
-                    .WaitAndRetryAsync(retrays,
+                    .WaitAndRetryAsync(retries,
                         (outcome, time, retryNumber, context) =>
                         {
                             //   _logger.LogWarning("Retry "+ retryNumber);
                             return Task.CompletedTask;
                         });
             var timeoutPolicy = Policy
-                .TimeoutAsync(TimeSpan.FromMilliseconds(options.Timeout),
+                .TimeoutAsync(TimeSpan.FromMilliseconds(_options.Timeout),
                     (context, span, arg3) =>
                     {
                         //   _logger.LogWarning("Timeout");
@@ -83,13 +67,13 @@ namespace Service.Infra.Network
                 .AsAsyncPolicy<HttpResponseMessage>();
             var circuitBreaker = HttpPolicyExtensions.HandleTransientHttpError().Or<Exception>()
             .AdvancedCircuitBreakerAsync(
-                options.CircuitBreak
+                _options.CircuitBreak
                     .FailureThreshold,
-                TimeSpan.FromSeconds(options.CircuitBreak
+                TimeSpan.FromSeconds(_options.CircuitBreak
                     .SamplingDuration),
-                options.CircuitBreak
+                _options.CircuitBreak
                     .MinimumThroughput,
-                TimeSpan.FromSeconds(options.CircuitBreak
+                TimeSpan.FromSeconds(_options.CircuitBreak
                     .DurationOfBreak),
                 (exception, span) => _logger.LogWarning("CircuitBreak Break"),
                 () => _logger.LogWarning("CircuitBreak OPEN"),
@@ -118,13 +102,7 @@ namespace Service.Infra.Network
                 };
             //new 
 
-            var serializerSettings = new JsonSerializerSettings()
-            {
-                // Any configuration options
-                
-            };
-            var x = new Polly.Caching.Serialization.Json.JsonSerializer<HttpResponseMessage>(serializerSettings);
-            var y = _cacheProvider.WithSerializer(new asdasd());
+            var y = _cacheProvider.WithSerializer(new HttpResponseCacheSerializer());
             var cache = Policy.CacheAsync(y,
                 new ResultTtl<HttpResponseMessage>(cacheOnly200OKfilter),
                 context =>
@@ -144,7 +122,7 @@ namespace Service.Infra.Network
                 (context, s, arg3) => { _logger.LogError($"Put Error Cache {s}"); });
 
             var bulkhead = Policy
-                .BulkheadAsync<HttpResponseMessage>(1000);
+                .BulkheadAsync<HttpResponseMessage>(10, ServicePointManager.DefaultConnectionLimit);
 
             return fallback.WrapAsync(cache)
                 .WrapAsync(timeoutPolicy)
@@ -153,7 +131,7 @@ namespace Service.Infra.Network
                 .WrapAsync(bulkhead);
         }
 
-        private static IEnumerable<TimeSpan> DecorrelatedJitter(int maxRetries, TimeSpan seedDelay, TimeSpan maxDelay)
+        private static IEnumerable<TimeSpan> GenerateJitter(int maxRetries, TimeSpan seedDelay, TimeSpan maxDelay)
         {
             var jitterer = new Random(Guid.NewGuid().GetHashCode());
             var retries = 0;
@@ -170,17 +148,15 @@ namespace Service.Infra.Network
         }
     }
 
-    public class asdasd: ICacheItemSerializer<HttpResponseMessage, string>{
-        private JsonSerializer<HttpResponseCache> x;
 
-        public asdasd()
+    public class HttpResponseCacheSerializer : ICacheItemSerializer<HttpResponseMessage, string>
+    {
+        private readonly JsonSerializer<HttpResponseCache> _jsonSerializer;
+
+        public HttpResponseCacheSerializer()
         {
-            var serializerSettings = new JsonSerializerSettings()
-            {
-                // Any configuration options
-
-            };
-            x = new Polly.Caching.Serialization.Json.JsonSerializer<HttpResponseCache>(serializerSettings);
+            var serializerSettings = new JsonSerializerSettings();
+            _jsonSerializer = new JsonSerializer<HttpResponseCache>(serializerSettings);
         }
         public string Serialize(HttpResponseMessage objectToSerialize)
         {
@@ -191,14 +167,14 @@ namespace Service.Infra.Network
                 ReasonPhrase = objectToSerialize.ReasonPhrase,
                 StatusCode = objectToSerialize.StatusCode
             };
-            var y = x.Serialize(asd);
+            var y = _jsonSerializer.Serialize(asd);
             return y;
         }
 
         public HttpResponseMessage Deserialize(string objectToDeserialize)
         {
 
-            var y= x.Deserialize(objectToDeserialize);
+            var y = _jsonSerializer.Deserialize(objectToDeserialize);
             var asd = new HttpResponseMessage
             {
                 Content = new StringContent(y.Content),

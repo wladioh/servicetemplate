@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Polly;
+using Polly.Registry;
 using Refit;
 
 namespace Service.Infra.Network
@@ -19,16 +19,17 @@ namespace Service.Infra.Network
         public ConfigureRefit(IServiceCollection services)
         {
             _services = services;
-            var serializer = new JsonContentSerializer(new JsonSerializerSettings
+            var serializerSettings = new JsonSerializerSettings
             {
                 ContractResolver = new DefaultContractResolver
                 {
                     NamingStrategy = new CamelCaseNamingStrategy()
                 }
-            });
+            };
+            var serializer = new JsonContentSerializer(serializerSettings);
             _settings = new RefitSettings
             {
-                ContentSerializer = serializer
+                ContentSerializer = serializer                
             };
         }
         public ConfigureRefit<TConfiguration> Configure<T>(Func<TConfiguration, string> func)
@@ -43,19 +44,7 @@ namespace Service.Infra.Network
                     client.Timeout = TimeSpan.FromMilliseconds(300);
                 })
                 .SetHandlerLifetime(TimeSpan.FromMinutes(5))  //Set lifetime to five minutes
-                //.AddPolicyHandler((serviceProvider, request) =>
-                //{
-                //    var factory = serviceProvider.GetService<PollyPolicyFactory>();
-                //    var context = new Context("CacheKeyToUseWithThisRequest");
-                //    context.Add("ID", "CacheKeyToUseWithThisRequest");
-                //    request.SetPolicyExecutionContext(context);
-                //    return factory.CreatePolicy<T>();
-                //})
-                .AddHttpMessageHandler(provider =>
-                {
-                    var factory = provider.GetService<PollyPolicyFactory>();                    
-                    return new ValidateHeaderHandler(factory.CreatePolicy<T>());
-                });
+                .AddHttpMessageHandler<ValidateHeaderHandler>();
             return this;
         }
     }
@@ -63,16 +52,16 @@ namespace Service.Infra.Network
     {
         private readonly IAsyncPolicy<HttpResponseMessage> _policy;
 
-        public ValidateHeaderHandler(IAsyncPolicy<HttpResponseMessage> policy)
+        public ValidateHeaderHandler(IReadOnlyPolicyRegistry<string> policyRegistry)
         {
-            _policy = policy;
+            _policy = policyRegistry.Get<IAsyncPolicy<HttpResponseMessage>>(DefaultPolicy.PolicyName);
         }
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
-        {;
+        {
             return await _policy.ExecuteAsync(
-                (context, token) => base.SendAsync(request, token), new Context(request.RequestUri.PathAndQuery),  cancellationToken);
+                (context, token) => base.SendAsync(request, token), new Context(request.RequestUri.PathAndQuery), cancellationToken);
         }
     }
 }
