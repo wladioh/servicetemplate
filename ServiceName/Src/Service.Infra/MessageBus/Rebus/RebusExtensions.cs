@@ -94,7 +94,7 @@ namespace Service.Infra.MessageBus.Rebus
 
             void configureSerialization(StandardConfigurer<ISerializer> s, IServiceProvider serviceProvider)
             {
-                s.UseNewtonsoftJson(JsonInteroperabilityMode.PureJson);
+                s.UseNewtonsoftJson(JsonInteroperabilityMode.FullTypeInformation);
             }
 
             void configureOptions(OptionsConfigurer o, IServiceProvider serviceProvider)

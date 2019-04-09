@@ -7,8 +7,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Service.Api.Extensions;
+using Service.Infra.Database.Mongo;
 using Service.Infra.MessageBus.Rebus;
 using Service.Infra.Network;
+using Service.Infra.Repositories;
 
 namespace Service.Api
 {
@@ -42,10 +44,9 @@ namespace Service.Api
                 {
                     config.Configure<IMockApi>(it => it.Mock);
                 });
-            services.AddRebus<Startup>(Configuration, configurer =>
-            {
-
-            });
+            services.AddMongo();
+            services.AddMongoRepositories();
+            services.AddRebus<Startup>(Configuration, configurer => { });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

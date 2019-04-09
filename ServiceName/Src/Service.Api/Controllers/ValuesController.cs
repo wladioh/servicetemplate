@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using Rebus.Bus;
 using Service.Api.Resources;
+using Service.Domain;
 
 namespace Service.Api.Controllers
 {
@@ -15,12 +16,14 @@ namespace Service.Api.Controllers
         private readonly IStringLocalizer<SharedResource> _i18N;
         private readonly IMockApi _mock;
         private readonly IBus _bus;
+        private readonly IClassRepository _repository;
 
-        public ValuesController(IStringLocalizer<SharedResource> i18N, IMockApi mock, IBus bus)
+        public ValuesController(IStringLocalizer<SharedResource> i18N, IMockApi mock, IBus bus, IClassRepository repository)
         {
             _i18N = i18N;
             _mock = mock;
             _bus = bus;
+            _repository = repository;
         }
         // GET api/values
         [HttpGet]
@@ -51,7 +54,9 @@ namespace Service.Api.Controllers
         // GET api/values/5
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
-        {
+        {   
+            await _repository.Add(new Class1());
+            var x = await _repository.GetAll();
             var re = await _mock.Get(id);
             if (re.IsSuccessStatusCode)
                 return Ok(re.Content);
