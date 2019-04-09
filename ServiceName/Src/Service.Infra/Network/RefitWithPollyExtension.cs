@@ -23,7 +23,7 @@ namespace Service.Infra.Network
             services.AddSingleton(serviceProvider => serviceProvider
                 .GetRequiredService<IDistributedCache>()
                 .AsAsyncCacheProvider<string>());
-            services.AddTransient<ValidateHeaderHandler>();
+            services.AddTransient<MessageHandler>();
             services.AddSingleton<DefaultPolicy>();
             var config = new ConfigureRefit<TConfig>(services);
             action?.Invoke(config);

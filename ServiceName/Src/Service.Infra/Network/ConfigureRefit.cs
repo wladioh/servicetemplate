@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using Polly;
-using Polly.Registry;
 using Refit;
 
 namespace Service.Infra.Network
@@ -44,24 +39,8 @@ namespace Service.Infra.Network
                     client.Timeout = TimeSpan.FromMilliseconds(3000);
                 })
                 .SetHandlerLifetime(TimeSpan.FromMinutes(5))  //Set lifetime to five minutes
-                .AddHttpMessageHandler<ValidateHeaderHandler>();
+                .AddHttpMessageHandler<MessageHandler>();
             return this;
-        }
-    }
-    public class ValidateHeaderHandler : DelegatingHandler
-    {
-        private readonly IAsyncPolicy<HttpResponseMessage> _policy;
-
-        public ValidateHeaderHandler(IReadOnlyPolicyRegistry<string> policyRegistry)
-        {
-            _policy = policyRegistry.Get<IAsyncPolicy<HttpResponseMessage>>(DefaultPolicy.PolicyName);
-        }
-        protected override async Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken)
-        {
-            return await _policy.ExecuteAsync(
-                (context, token) =>  base.SendAsync(request, token), new Context(request.RequestUri.PathAndQuery), cancellationToken);
         }
     }
 }

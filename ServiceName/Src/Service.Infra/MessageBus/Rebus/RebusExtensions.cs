@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Rebus.Config;
+using Rebus.Persistence.InMem;
 using Rebus.Retry.Simple;
 using Rebus.Routing;
 using Rebus.Sagas;
@@ -14,6 +15,7 @@ using Rebus.Serialization.Json;
 using Rebus.ServiceProvider;
 using Rebus.Timeouts;
 using Rebus.Transport;
+using Rebus.Transport.InMem;
 
 namespace Service.Infra.MessageBus.Rebus
 {
@@ -24,19 +26,22 @@ namespace Service.Infra.MessageBus.Rebus
 
         public static IServiceCollection AddRebus<THandler>(this IServiceCollection services, IConfiguration configuration, Action<StandardConfigurer<IRouter>> action = null)
         {
+
+            var rebusConfig = new MessageBusOptions();
+            configuration.Bind(MessageBusOptions.Section, rebusConfig);
+            var x = ConfigureRebus(services, rebusConfig, action);
             services.Configure<MessageBusOptions>(configuration.GetSection(MessageBusOptions.Section));
             services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<MessageBusOptions>>().CurrentValue);
             services.AutoRegisterHandlersFromAssemblyOf<THandler>();
-            services.AddRebus(ConfigureRebus(services, action));
+
+            services.AddRebus(x);
             services.AddScoped<IMessageBus, RebusMessageBus>();
             return services;
         }
 
-        private static Func<RebusConfigurer, RebusConfigurer> ConfigureRebus(IServiceCollection services, Action<StandardConfigurer<IRouter>> action)
+        private static Func<RebusConfigurer, IServiceProvider, RebusConfigurer> ConfigureRebus(IServiceCollection services, MessageBusOptions rebusConfig,
+            Action<StandardConfigurer<IRouter>> action)
         {
-
-            var serviceProvider = services.BuildServiceProvider();
-            var rebusConfig = serviceProvider.GetService<MessageBusOptions>();
             void ConfigureRabbit(StandardConfigurer<ITransport> t)
             {
                 t.UseRabbitMq(rebusConfig.ConnectionString, rebusConfig.Queue)
@@ -51,50 +56,70 @@ namespace Service.Infra.MessageBus.Rebus
                     .EnablePrefetching(rebusConfig.Prefetch);
             }
 
-            void configureTransport(StandardConfigurer<ITransport> t)
+            void ConfigureMemory(StandardConfigurer<ITransport> t, IServiceProvider serviceProvider)
             {
-                if (rebusConfig.UseAzureServiceBus)
-                    ConfigureAzure(t);
-                else
-                    ConfigureRabbit(t);
-            };
+                t.UseInMemoryTransport(serviceProvider.GetService<InMemNetwork>(), rebusConfig.Queue);
+            }
 
-            void configureLogging(RebusLoggingConfigurer l)
+            void configureTransport(StandardConfigurer<ITransport> t, IServiceProvider serviceProvider)
+            {
+                switch (rebusConfig.Transport)
+                {
+                    case MessageBusOptions.TransportOptions.Azure:
+                        ConfigureAzure(t);
+                        break;
+                    case MessageBusOptions.TransportOptions.Rabbit:
+                        ConfigureRabbit(t);
+                        break;
+                    case MessageBusOptions.TransportOptions.Memory:
+                        ConfigureMemory(t, serviceProvider);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            void configureLogging(RebusLoggingConfigurer l, IServiceProvider serviceProvider)
             {
                 l.MicrosoftExtensionsLogging(serviceProvider.GetService<ILoggerFactory>());
-            };
+            }
 
-            void configureSagas(StandardConfigurer<ISagaStorage> s)
+            void configureSagas(StandardConfigurer<ISagaStorage> s, IServiceProvider serviceProvider)
             {
-                s.StoreInMongoDb(serviceProvider.GetService<IMongoDatabase>());
-            };
+                if (rebusConfig.Transport == MessageBusOptions.TransportOptions.Memory)
+                    s.StoreInMemory();
+                else
+                    s.StoreInMongoDb(serviceProvider.GetService<IMongoDatabase>());
+            }
 
-            void configureSerialization(StandardConfigurer<ISerializer> s)
+            void configureSerialization(StandardConfigurer<ISerializer> s, IServiceProvider serviceProvider)
             {
                 s.UseNewtonsoftJson(JsonInteroperabilityMode.PureJson);
-            };
+            }
 
-            void configureOptions(OptionsConfigurer o)
+            void configureOptions(OptionsConfigurer o, IServiceProvider serviceProvider)
             {
                 o.EnableIdempotentSagas();
                 o.SetMaxParallelism(rebusConfig.MaxParallelism);
                 o.SetNumberOfWorkers(rebusConfig.NumberOfWorkers);
                 o.SimpleRetryStrategy(maxDeliveryAttempts: rebusConfig.Retry, errorQueueAddress: rebusConfig.ErrorQueue);
-            };
+            }
 
-            void configureTimeouts(StandardConfigurer<ITimeoutManager> t)
+            void configureTimeouts(StandardConfigurer<ITimeoutManager> t, IServiceProvider serviceProvider)
             {
-                if (!rebusConfig.UseAzureServiceBus)
+                if (rebusConfig.Transport == MessageBusOptions.TransportOptions.Memory)
+                    t.StoreInMemory();
+                else
                     t.StoreInMongoDb(serviceProvider.GetService<IMongoDatabase>(), "TimeOutRebus");
-            };
+            }
 
-            return configure => configure
-                   .Logging(configureLogging)
-                   .Transport(configureTransport)
-                   .Sagas(configureSagas)
-                   .Serialization(configureSerialization)
-                   .Options(configureOptions)
-                   .Timeouts(configureTimeouts)
+            return (configure, provider) => configure
+                   .Logging(it => configureLogging(it, provider))
+                   .Transport(it => configureTransport(it, provider))
+                   .Sagas(it => configureSagas(it, provider))
+                   .Serialization(it => configureSerialization(it, provider))
+                   .Options(it => configureOptions(it, provider))
+                   .Timeouts(it => configureTimeouts(it, provider))
                    .Routing(r => action?.Invoke(r));
         }
     }

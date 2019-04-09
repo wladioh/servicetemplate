@@ -1,7 +1,10 @@
-﻿namespace Service.Infra.MessageBus
+﻿using System;
+
+namespace Service.Infra.MessageBus
 {
     public class MessageBusOptions
     {
+        public enum TransportOptions { Azure, Rabbit, Memory };
         public static string Section => "MessageBus";
         public string ConnectionString { get; set; }
         public string Queue { get; set; }
@@ -10,6 +13,6 @@
         public int MaxParallelism { get; set; } = 20;
         public int NumberOfWorkers { get; set; } = 2;
         public int Prefetch { get; set; } = 30;
-        public bool UseAzureServiceBus { get; set; } = false;
+        public TransportOptions Transport { get; set; } = TransportOptions.Rabbit;
     }
 }

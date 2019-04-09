@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
+using Rebus.Bus;
 using Service.Api.Resources;
 
 namespace Service.Api.Controllers
@@ -13,11 +14,13 @@ namespace Service.Api.Controllers
     {
         private readonly IStringLocalizer<SharedResource> _i18N;
         private readonly IMockApi _mock;
+        private readonly IBus _bus;
 
-        public ValuesController(IStringLocalizer<SharedResource> i18N, IMockApi mock)
+        public ValuesController(IStringLocalizer<SharedResource> i18N, IMockApi mock, IBus bus)
         {
             _i18N = i18N;
             _mock = mock;
+            _bus = bus;
         }
         // GET api/values
         [HttpGet]
