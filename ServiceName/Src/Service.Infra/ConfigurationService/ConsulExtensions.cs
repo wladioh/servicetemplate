@@ -20,7 +20,6 @@ namespace Service.Infra.ConfigurationService
                 configuration.GetSection(ServiceConfigurationOptions.SectioName).Bind(consulConfiguration);
                 configurationBuilder.AddConsul(consulConfiguration.KeyName, _cancellationToken.Token, config =>
                 {
-
                     config.Optional = consulConfiguration.Optional;
                     config.ReloadOnChange = true;
                     config.ConsulConfigurationOptions = configurationClient =>

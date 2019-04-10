@@ -7,7 +7,7 @@ namespace Service.Api
 {
     public interface IMockApi
     {
-        [Get("/api/values/{id}")]
+        [Get("/anyvalue/{id}")]
         Task<ApiResponse<MockValue>> Get(int id);
     }
 

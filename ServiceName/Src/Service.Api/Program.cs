@@ -2,6 +2,7 @@
 using App.Metrics.AspNetCore;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using Service.Infra.ConfigurationService;
 
 namespace Service.Api
 {
@@ -14,6 +15,7 @@ namespace Service.Api
             WebHost.CreateDefaultBuilder(args)
                 .ConfigureKestrel(opt => opt.AddServerHeader = false)
                 .ConfigureMetrics()
+                .ConfigureConsul()
                 .UseMetrics()
                 .UseStartup<Startup>();
     }

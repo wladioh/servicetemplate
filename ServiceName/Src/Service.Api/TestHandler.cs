@@ -4,7 +4,9 @@ using Service.Infra.MessageBus;
 
 namespace Service.Api
 {
-    public class TestHandler: IMessageHandleHandler<TestMessage>
+    public class TestHandler: IMessageHandler<TestMessage>,
+        IMessageHandler<OtherMessage>,
+        IMessageHandler<OtherMessagePublish>
     {
         private readonly IBus _bus;
 
@@ -16,6 +18,25 @@ namespace Service.Api
         {
             return _bus.Reply(message);
         }
+
+        public Task Handle(OtherMessage message)
+        {
+            return _bus.Send(message);
+        }
+
+        public Task Handle(OtherMessagePublish message)
+        {
+            return _bus.Publish(message);
+        }
+    }
+
+    public class OtherMessagePublish : IntegrationMessage
+    {
+        public string Name { get; set; }
+    }
+    public class OtherMessage: IntegrationMessage
+    {
+        public string Name { get; set; }
     }
 
     public class TestMessage : IntegrationMessage

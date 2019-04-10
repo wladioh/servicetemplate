@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Rebus.Routing.TypeBased;
 using Service.Api.Extensions;
+using Service.Infra.ConfigurationService;
 using Service.Infra.Database.Mongo;
 using Service.Infra.MessageBus.Rebus;
 using Service.Infra.Network;
@@ -46,7 +48,12 @@ namespace Service.Api
                 });
             services.AddMongo();
             services.AddMongoRepositories();
-            services.AddRebus<Startup>(Configuration, configurer => { });
+            services.AddRebus<Startup>(Configuration, configurer =>
+            {
+                configurer.TypeBased()
+                    .Map<OtherMessage>("OtherService")
+                    .MapFallback("ServiceNameErros");
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -66,6 +73,7 @@ namespace Service.Api
             app.UseDefaultCors();
             app.UseHttpsRedirection();
             app.UseDefaultAuthentication();
+            app.UseConsul();
             app.UseMvc();
             app.UseRebus();
         }

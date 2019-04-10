@@ -13,6 +13,7 @@ using Rebus.Sagas.Idempotent;
 using Rebus.Serialization;
 using Rebus.Serialization.Json;
 using Rebus.ServiceProvider;
+using Rebus.Subscriptions;
 using Rebus.Timeouts;
 using Rebus.Transport;
 using Rebus.Transport.InMem;
@@ -29,12 +30,12 @@ namespace Service.Infra.MessageBus.Rebus
 
             var rebusConfig = new MessageBusOptions();
             configuration.Bind(MessageBusOptions.Section, rebusConfig);
-            var x = ConfigureRebus(services, rebusConfig, action);
+            var configureRebus = ConfigureRebus(services, rebusConfig, action);
             services.Configure<MessageBusOptions>(configuration.GetSection(MessageBusOptions.Section));
             services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<MessageBusOptions>>().CurrentValue);
             services.AutoRegisterHandlersFromAssemblyOf<THandler>();
 
-            services.AddRebus(x);
+            services.AddRebus(configureRebus);
             services.AddScoped<IMessageBus, RebusMessageBus>();
             return services;
         }
@@ -113,11 +114,18 @@ namespace Service.Infra.MessageBus.Rebus
                     t.StoreInMongoDb(serviceProvider.GetService<IMongoDatabase>(), "TimeOutRebus");
             }
 
+            void subscriptions(StandardConfigurer<ISubscriptionStorage> t)
+            {
+                if (rebusConfig.Transport == MessageBusOptions.TransportOptions.Memory)
+                    t.StoreInMemory();
+            }
+
             return (configure, provider) => configure
                    .Logging(it => configureLogging(it, provider))
                    .Transport(it => configureTransport(it, provider))
                    .Sagas(it => configureSagas(it, provider))
                    .Serialization(it => configureSerialization(it, provider))
+                   .Subscriptions(subscriptions)
                    .Options(it => configureOptions(it, provider))
                    .Timeouts(it => configureTimeouts(it, provider))
                    .Routing(r => action?.Invoke(r));

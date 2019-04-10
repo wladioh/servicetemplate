@@ -54,9 +54,7 @@ namespace Service.Api.Controllers
         // GET api/values/5
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
-        {   
-            await _repository.Add(new Class1());
-            var x = await _repository.GetAll();
+        {
             var re = await _mock.Get(id);
             if (re.IsSuccessStatusCode)
                 return Ok(re.Content);
@@ -65,8 +63,12 @@ namespace Service.Api.Controllers
 
         // POST api/values
         [HttpPost]
-        public void Post([FromBody] string value)
+        public async Task Post([FromBody] string value)
         {
+            await _repository.Add(new Class1
+            {
+                Name = value
+            });
         }
 
         // PUT api/values/5
