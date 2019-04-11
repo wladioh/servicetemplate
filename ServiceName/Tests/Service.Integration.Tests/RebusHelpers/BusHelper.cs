@@ -10,13 +10,13 @@ namespace Service.Integration.Tests.RebusHelpers
 {
     public static class BusHelper
     {
-        public static IBus Create(MessageHelper messageHelper, InMemNetwork network, string queue, Action<StandardConfigurer<Rebus.Routing.IRouter>> RouteConfigure = null)
+        public static IBus Create(MessageHelper messageHelper, InMemNetwork network, string queue, Action<StandardConfigurer<Rebus.Routing.IRouter>> routeConfigure = null)
         {
             var activator = new BuiltinHandlerActivator();
             activator.Register((bus, context) => new HandlerAllMessages(messageHelper));
             return Configure.With(activator)
                 .Transport(t => t.UseInMemoryTransport(network, queue))
-                .Routing(RouteConfigure ?? (configurer => { }))
+                .Routing(routeConfigure ?? (configurer => { }))
                 .Subscriptions(it => it.StoreInMemory())
                 .Logging(l =>
                 {

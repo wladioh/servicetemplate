@@ -1,10 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Mongo2Go;
 using MongoDB.Driver;
+using Rebus.Bus;
+using Rebus.Config;
 using Rebus.Transport.InMem;
 using Service.Integration.Tests.RebusHelpers;
 using WireMock.Net.StandAlone;
@@ -25,9 +28,12 @@ namespace Service.Integration.Tests
             };
         public readonly InMemNetwork InMemoryBus = new InMemNetwork();
         public readonly MongoDbRunner Runner = MongoDbRunner.Start();
+        private IBus _bus;
         public FluentMockServer WireMockServer { get; }
         public IMongoDatabase MongoDB { get; }
-        public MessageHelper MessageReciver { get; }
+        public MessageHelper MessageReceiver { get; }
+        private Action<StandardConfigurer<Rebus.Routing.IRouter>> _router;
+        public IBus Bus => _bus ?? (_bus = BusHelper.Create(MessageReceiver, InMemoryBus, "TestQueue", _router));
 
         public CustomWebApplicationFactory()
         {
@@ -40,7 +46,7 @@ namespace Service.Integration.Tests
             WireMockServer = StandAloneApp.Start(settings);
             MongoDB = new MongoClient(Runner.ConnectionString).GetDatabase("ServiceName");
 
-            MessageReciver = new MessageHelper(InMemoryBus);
+            MessageReceiver = new MessageHelper(InMemoryBus);
             //mock consul request
             WireMockServer.Given(Request.Create().WithPath("/v1/kv/ServiceName")
                     .UsingGet())
@@ -59,6 +65,11 @@ namespace Service.Integration.Tests
                     collection.AddSingleton(InMemoryBus);
                 })
                 .UseEnvironment("IntegrationTest");
+        }
+
+        public void ConfigureRoutingMessages(Action<StandardConfigurer<Rebus.Routing.IRouter>> router)
+        {
+            _router = router;
         }
     }
 }

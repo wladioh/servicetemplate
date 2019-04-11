@@ -8,7 +8,6 @@ using Rebus.Routing.TypeBased;
 using Service.Api;
 using Service.Domain;
 using Service.Integration.Tests.Extensions;
-using Service.Integration.Tests.RebusHelpers;
 using WireMock.RequestBuilders;
 using Xunit;
 
@@ -25,16 +24,15 @@ namespace Service.Integration.Tests
         {
             _factory = factory;
             _client = _factory.CreateClient();
-            _bus = BusHelper.Create(_factory.MessageReciver, _factory.InMemoryBus, "TestQueue",
-                t =>
-                {
-                    t.TypeBased()
-                        .Map<TestMessage>("ServiceName")
-                        .Map<OtherMessage>("ServiceName")
-                        .Map<OtherMessagePublish>("ServiceName")
-                        .MapFallback("TestErrors");
-                }
-            );
+            _factory.ConfigureRoutingMessages(t =>
+            {
+                t.TypeBased()
+                    .Map<TestMessage>("ServiceName")
+                    .Map<OtherMessage>("ServiceName")
+                    .Map<OtherMessagePublish>("ServiceName")
+                    .MapFallback("TestErrors");
+            });
+            _bus = _factory.Bus;
         }
 
 
@@ -43,7 +41,6 @@ namespace Service.Integration.Tests
         public async Task Get_EndpointsReturnSuccessAndCorrectContentTypeAsync(string url)
         {
             // Arrange
-            // mock subrequest endpoint
             _factory.WireMockServer.Given(Request.Create().WithPath("/anyvalue/1")
                     .UsingGet())
                 .RespondWith(WireMock.ResponseBuilders.Response.Create()
@@ -82,22 +79,22 @@ namespace Service.Integration.Tests
             };
             await _bus.Send(message);
             // Assert
-            var messageReplied = await _factory.MessageReciver.WaitForMessage<TestMessage>();
-            message.Name.Should().Be(message.Name);
+            var messageReplied = await _factory.MessageReceiver.WaitForMessage<TestMessage>();
+            message.Name.Should().Be(messageReplied.Name);
         }
 
         [Fact]
         public async Task SendOtherMessage_WaitForMessageInSpecificQueue()
         {
-            _factory.MessageReciver.ListenerQueue("OtherService");
+            _factory.MessageReceiver.ListenerQueue("OtherService");
             var message = new OtherMessage
             {
                 Name = "Any Message"
             };
             await _bus.Send(message);
             // Assert
-            var messageReplied = await _factory.MessageReciver.WaitForMessage<OtherMessage>();
-            message.Name.Should().Be(message.Name);
+            var messageReplied = await _factory.MessageReceiver.WaitForMessage<OtherMessage>();
+            message.Name.Should().Be(messageReplied.Name);
         }
 
         [Fact]
@@ -110,8 +107,8 @@ namespace Service.Integration.Tests
             };
             await _bus.Send(message);
             // Assert
-            var messageReplied = await _factory.MessageReciver.WaitForMessage<OtherMessagePublish>();
-            message.Name.Should().Be(message.Name);
+            var messageReplied = await _factory.MessageReceiver.WaitForMessage<OtherMessagePublish>();
+            message.Name.Should().Be(messageReplied.Name);
         }
     }
 }
