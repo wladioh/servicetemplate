@@ -51,6 +51,9 @@ Set-ExecutionPolicy RemoteSigned -Scope Process
 }
 ```
 ### Explanation:
+- Policies sequence execution
+![Wrap policies](https://user-images.githubusercontent.com/9608723/32406632-bb7d2a06-c173-11e7-8a83-3f07549eb819.PNG "teste")
+
 #### Timeout:
 >Builds an timeout policy that will wait asynchronously for a delegate to complete for a specified period of time. A timeout exception will be thrown if the delegate does not complete within the configured timeout.
 ##### Parameters:
