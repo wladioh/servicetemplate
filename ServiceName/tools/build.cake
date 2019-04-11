@@ -25,13 +25,28 @@ Task("Test")
         CoverletOutputName = $"results-{DateTime.UtcNow:dd-MM-yyyy-HH-mm-ss-FFF}",
         Exclude = new List<string>  {"[xunit.*]*"}
     };
+    if(DirectoryExists(coverageDirectory))
+        DeleteDirectory(coverageDirectory, new DeleteDirectorySettings {
+            Recursive = true,
+            Force = true
+        });
+    DotNetCoreTest($@"{rootFolder}\Tests\Service.Api.Tests", testSettings, coverletSettings);
+});
+ 
+Task("IntegrationTest")
+    .IsDependentOn("Build")
+    .Does(() =>
+{   
+    var testSettings = new DotNetCoreTestSettings {
+        NoBuild = true
+    };
     DeleteDirectory(coverageDirectory, new DeleteDirectorySettings {
         Recursive = true,
         Force = true
     });
-    DotNetCoreTest($@"{rootFolder}\Tests\Service.Api.Tests", testSettings, coverletSettings);
+    DotNetCoreTest($@"{rootFolder}\Tests\Service.Integration.Tests", testSettings);
 });
- 
+
 Task("Coverage")
     .IsDependentOn("Test")
     .Does(()=>{
