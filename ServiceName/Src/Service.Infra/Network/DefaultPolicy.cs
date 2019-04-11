@@ -62,10 +62,11 @@ namespace Service.Infra.Network
                 .WrapAsync(bulkhead);
         }
 
-        private static AsyncBulkheadPolicy<HttpResponseMessage> BulkheadPolicy()
+        private AsyncBulkheadPolicy<HttpResponseMessage> BulkheadPolicy()
         {
             var bulkhead = Policy
-                .BulkheadAsync<HttpResponseMessage>(10, ServicePointManager.DefaultConnectionLimit);
+                .BulkheadAsync<HttpResponseMessage>(_options.Bulkhead.MaxParallelization,
+                    _options.Bulkhead.MaxQueuingActions);
             return bulkhead;
         }
 
@@ -74,7 +75,7 @@ namespace Service.Infra.Network
             Ttl cacheOnly200OKfilter(Context context, HttpResponseMessage result)
             {
                 return new Ttl(
-                    timeSpan: result.StatusCode == HttpStatusCode.OK ? TimeSpan.FromMinutes(5) : TimeSpan.Zero,
+                    timeSpan: result.StatusCode == HttpStatusCode.OK ? TimeSpan.FromMinutes(_options.Cache.TimeSpan) : TimeSpan.Zero,
                     slidingExpiration: true
                 );
             }

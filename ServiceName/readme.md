@@ -17,8 +17,13 @@ Set-ExecutionPolicy RemoteSigned -Scope Process
 ```powershell
 .\build.ps1
 ```
-
-## Refit and Polly
+## Message bus
+- todo
+## Configuration Service
+- todo
+## Database
+- todo
+## Resiliencie with Refit and Polly
 - This project use [Refit](https://github.com/reactiveui/refit) and [Polly](https://github.com/App-vNext/Polly)  libraries to make resilientes requests following [this](https://github.com/App-vNext/Polly/wiki/Transient-fault-handling-and-proactive-resilience-engineering) best praticies.
 - Available Configuration with default values:
 ```json
