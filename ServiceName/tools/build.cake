@@ -51,7 +51,7 @@ Task("Coverage")
     .IsDependentOn("Test")
     .Does(()=>{
          ReportGenerator($@"{coverageDirectory}\*.opencover.xml", 
-             coverageDirectory,
+            coverageDirectory,
             new ReportGeneratorSettings(){
         ReportTypes = new[] { ReportGeneratorReportType.HtmlInline }
             });
