@@ -5,13 +5,13 @@ using Refit;
 
 namespace Service.Api
 {
-    public interface IMockApi
+    public interface ISomeoneApi
     {
         [Get("/anyvalue/{id}")]
-        Task<ApiResponse<MockValue>> Get(int id);
+        Task<ApiResponse<SomeoneApiValue>> Get(int id);
     }
 
-    public class MockValue
+    public class SomeoneApiValue
     {
         public int Id { get; set; }
         public string Value { get; set; }

@@ -44,14 +44,14 @@ namespace Service.Integration.Tests
             _factory.WireMockServer.Given(Request.Create().WithPath("/anyvalue/1")
                     .UsingGet())
                 .RespondWith(WireMock.ResponseBuilders.Response.Create()
-                    .WithBodyAsJson(new MockValue()));
+                    .WithBodyAsJson(new SomeoneApiValue()));
 
             // Act
             var response = await _client.GetAsync(url);
 
             response.EnsureSuccessStatusCode(); // Status Code 200-299
             response.StatusCode.Should().Be(HttpStatusCode.OK);
-            var message = await response.Get<MockValue>();
+            var message = await response.Get<SomeoneApiValue>();
             message.Should().NotBeNull();
         }
         [Fact]
@@ -64,7 +64,7 @@ namespace Service.Integration.Tests
 
             response.EnsureSuccessStatusCode(); // Status Code 200-299
             response.StatusCode.Should().Be(HttpStatusCode.OK);
-            var collection = _factory.MongoDB.GetCollection<Class1>(typeof(Class1).Name);
+            var collection = _factory.MongoDB.GetCollection<Value>(typeof(Value).Name);
             var savedMessage = collection.FindSync(it => it.Name == name).FirstOrDefault();
             savedMessage.Should().NotBeNull();
         }

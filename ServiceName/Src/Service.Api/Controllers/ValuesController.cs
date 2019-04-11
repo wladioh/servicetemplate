@@ -14,29 +14,29 @@ namespace Service.Api.Controllers
     public class ValuesController : ControllerBase
     {
         private readonly IStringLocalizer<SharedResource> _i18N;
-        private readonly IMockApi _mock;
+        private readonly ISomeoneApi _someone;
         private readonly IBus _bus;
         private readonly IClassRepository _repository;
 
-        public ValuesController(IStringLocalizer<SharedResource> i18N, IMockApi mock, IBus bus, IClassRepository repository)
+        public ValuesController(IStringLocalizer<SharedResource> i18N, ISomeoneApi someone, IBus bus, IClassRepository repository)
         {
             _i18N = i18N;
-            _mock = mock;
+            _someone = someone;
             _bus = bus;
             _repository = repository;
         }
         // GET api/values
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<MockValue>>> Get()
+        public async Task<ActionResult<IEnumerable<SomeoneApiValue>>> Get()
         {
             var random = new Random(Guid.NewGuid().GetHashCode());
             var x = 0;
             var sucess = 0;
             var error = 0;
-            var results = new List<MockValue>();
+            var results = new List<SomeoneApiValue>();
             while (x < 100)
             {
-                var re = await _mock.Get(random.Next(1, 500));
+                var re = await _someone.Get(random.Next(1, 500));
                 if (re.IsSuccessStatusCode)
                 {
                     results.Add(re.Content);
@@ -55,7 +55,7 @@ namespace Service.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var re = await _mock.Get(id);
+            var re = await _someone.Get(id);
             if (re.IsSuccessStatusCode)
                 return Ok(re.Content);
             return BadRequest(re.Error.Content);
@@ -65,7 +65,7 @@ namespace Service.Api.Controllers
         [HttpPost]
         public async Task Post([FromBody] string value)
         {
-            await _repository.Add(new Class1
+            await _repository.Add(new Value
             {
                 Name = value
             });

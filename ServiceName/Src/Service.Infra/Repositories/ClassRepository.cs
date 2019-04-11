@@ -17,17 +17,17 @@ namespace Service.Infra.Repositories
             _dataBase = dataBase;
         }
     }
-    public class ClassMongoRepository : MongoRepositoryBase<Class1>, IClassRepository
+    public class ClassMongoRepository : MongoRepositoryBase<Value>, IClassRepository
     {
         public ClassMongoRepository(IMongoDatabase dataBase) : base(dataBase)
         { }
 
-        public async Task Add(Class1 item)
+        public async Task Add(Value item)
         {
             await Collection.InsertOneAsync(item);
         }
 
-        public async Task<Class1> GetAll()
+        public async Task<Value> GetAll()
         {
             return await Collection.Find(class1 => true).FirstOrDefaultAsync();
         }

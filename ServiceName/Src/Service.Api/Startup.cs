@@ -44,7 +44,7 @@ namespace Service.Api
             services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<EndpointsOptions>>().CurrentValue);
             services.AddRefitWithPolly<EndpointsOptions>(Configuration, config =>
                 {
-                    config.Configure<IMockApi>(it => it.Mock);
+                    config.Configure<ISomeoneApi>(it => it.Mock);
                 });
             services.AddMongo();
             services.AddMongoRepositories();

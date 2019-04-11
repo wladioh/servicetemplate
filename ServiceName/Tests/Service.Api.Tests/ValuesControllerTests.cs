@@ -17,7 +17,7 @@ namespace Service.Api.Tests
     {
         private MockRepository _mockRepository;
         private Mock<IStringLocalizer<SharedResource>> _i18N;
-        private Mock<IMockApi> _api;
+        private Mock<ISomeoneApi> _api;
         private Mock<IBus> _bus;
         private Mock<IClassRepository> _repository;
         private ValuesController _controller;
@@ -26,7 +26,7 @@ namespace Service.Api.Tests
         {
             _mockRepository = new MockRepository(MockBehavior.Default);
             _i18N = _mockRepository.Create<IStringLocalizer<SharedResource>>();
-            _api = _mockRepository.Create<IMockApi>();
+            _api = _mockRepository.Create<ISomeoneApi>();
             _bus = _mockRepository.Create<IBus>();
             _repository = _mockRepository.Create<IClassRepository>();
             _controller = new ValuesController(_i18N.Object, _api.Object, _bus.Object, _repository.Object);
@@ -35,7 +35,7 @@ namespace Service.Api.Tests
         public async Task SingleTest()
         {
             var id = 1;
-            var response = new ApiResponse<MockValue>(new HttpResponseMessage(), new MockValue
+            var response = new ApiResponse<SomeoneApiValue>(new HttpResponseMessage(), new SomeoneApiValue
             {
                 Id = id
             });
@@ -45,8 +45,8 @@ namespace Service.Api.Tests
             var result = await _controller.Get(id);
 
             result.Should().BeOfType<OkObjectResult>();
-            var mockValue = result.As<OkObjectResult>().Value.As<MockValue>();
-            mockValue.Should().BeEquivalentTo(new MockValue
+            var mockValue = result.As<OkObjectResult>().Value.As<SomeoneApiValue>();
+            mockValue.Should().BeEquivalentTo(new SomeoneApiValue
             {
                 Id = id
             });

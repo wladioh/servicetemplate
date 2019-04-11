@@ -2,7 +2,7 @@
 
 namespace Service.Domain
 {
-    public class Class1
+    public class Value
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         public string Name { get; set; }
