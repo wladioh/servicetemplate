@@ -72,7 +72,6 @@ namespace Service.Integration.Tests
         [Fact]
         public async Task SendMessage_WaitToReply()
         {
-            //_messageReciver.ListenerQueue("umafila"); 
             var message = new TestMessage
             {
                 Name = "Any Message"
