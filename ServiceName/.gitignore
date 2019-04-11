@@ -264,3 +264,10 @@ __pycache__/
 *.pyc
 
 /Tests/coverage-results
+
+#cake
+tools/**
+!tools/cake.config
+!tools/build.ps1
+!tools/build.sh
+!tools/build.cake
