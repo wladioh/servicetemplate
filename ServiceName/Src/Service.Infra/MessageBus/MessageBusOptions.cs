@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Service.Infra.MessageBus
+﻿namespace Service.Infra.MessageBus
 {
     public class MessageBusOptions
     {

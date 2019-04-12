@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace ServiceName.Sdk
+﻿namespace ServiceName.Sdk
 {
     public class Class1
     {

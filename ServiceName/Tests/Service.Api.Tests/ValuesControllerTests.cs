@@ -15,12 +15,12 @@ namespace Service.Api.Tests
 {
     public class ValuesControllerTests
     {
-        private MockRepository _mockRepository;
-        private Mock<IStringLocalizer<SharedResource>> _i18N;
-        private Mock<ISomeoneApi> _api;
-        private Mock<IBus> _bus;
-        private Mock<IClassRepository> _repository;
-        private ValuesController _controller;
+        private readonly MockRepository _mockRepository;
+        private readonly Mock<IStringLocalizer<SharedResource>> _i18N;
+        private readonly Mock<ISomeoneApi> _api;
+        private readonly Mock<IBus> _bus;
+        private readonly Mock<IClassRepository> _repository;
+        private readonly ValuesController _controller;
 
         public ValuesControllerTests()
         {

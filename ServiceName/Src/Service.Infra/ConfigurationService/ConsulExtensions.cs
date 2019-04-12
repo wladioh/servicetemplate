@@ -10,15 +10,15 @@ namespace Service.Infra.ConfigurationService
 {
     public static class ConsulExtensions
     {
-        private static readonly CancellationTokenSource _cancellationToken = new CancellationTokenSource();
+        private static readonly CancellationTokenSource CancellationToken = new CancellationTokenSource();
         public static IWebHostBuilder ConfigureConsul(this IWebHostBuilder webHostBuilder)
         {
             webHostBuilder.ConfigureAppConfiguration((context, configurationBuilder) =>
             {
                 var configuration = configurationBuilder.Build();
                 var consulConfiguration = new ServiceConfigurationOptions();
-                configuration.GetSection(ServiceConfigurationOptions.SectioName).Bind(consulConfiguration);
-                configurationBuilder.AddConsul(consulConfiguration.KeyName, _cancellationToken.Token, config =>
+                configuration.GetSection(ServiceConfigurationOptions.SectionName).Bind(consulConfiguration);
+                configurationBuilder.AddConsul(consulConfiguration.KeyName, CancellationToken.Token, config =>
                 {
                     config.Optional = consulConfiguration.Optional;
                     config.ReloadOnChange = true;
@@ -34,7 +34,7 @@ namespace Service.Infra.ConfigurationService
         public static IApplicationBuilder UseConsul(this IApplicationBuilder app)
         {
             var lifeTime = app.ApplicationServices.GetService<IApplicationLifetime>();
-            lifeTime.ApplicationStopping.Register(_cancellationToken.Cancel);
+            lifeTime.ApplicationStopping.Register(CancellationToken.Cancel);
             return app;
         }
     }
