@@ -7,7 +7,7 @@ var solution = File($@"{rootFolder}\ServiceName.sln");
 var coverageDirectory = Directory($@"{rootFolder}\Tests\coverage-results\");
 Task("Build").
     Does(()=>{
-        DotNetCoreClean(solution);
+       // DotNetCoreClean(solution);
         DotNetCoreBuild(solution);
     });
 
@@ -16,13 +16,15 @@ Task("Test")
     .Does(() =>
 {   
     var testSettings = new DotNetCoreTestSettings {
-        NoBuild = true
+        NoBuild = true,
+        Logger = $"trx;LogFileName=UnitTests.trx",
+        ResultsDirectory = coverageDirectory
     };
     var coverletSettings = new CoverletSettings {
         CollectCoverage = true,
-        CoverletOutputFormat = CoverletOutputFormat.opencover,
+        CoverletOutputFormat = CoverletOutputFormat.opencover | CoverletOutputFormat.cobertura,
         CoverletOutputDirectory = coverageDirectory,
-        CoverletOutputName = $"results-{DateTime.UtcNow:dd-MM-yyyy-HH-mm-ss-FFF}",
+        CoverletOutputName = $"coverage",
         Exclude = new List<string>  {"[xunit.*]*"}
     };
     if(DirectoryExists(coverageDirectory))
@@ -38,12 +40,15 @@ Task("IntegrationTest")
     .Does(() =>
 {   
     var testSettings = new DotNetCoreTestSettings {
-        NoBuild = true
+        NoBuild = true,
+        Logger = $"trx;LogFileName=IntegrationTests.trx",
+        ResultsDirectory = coverageDirectory
     };
-    DeleteDirectory(coverageDirectory, new DeleteDirectorySettings {
-        Recursive = true,
-        Force = true
-    });
+    if(DirectoryExists(coverageDirectory))
+        DeleteDirectory(coverageDirectory, new DeleteDirectorySettings {
+            Recursive = true,
+            Force = true
+        });
     DotNetCoreTest($@"{rootFolder}\Tests\Service.Integration.Tests", testSettings);
 });
 
@@ -53,7 +58,7 @@ Task("Coverage")
          ReportGenerator($@"{coverageDirectory}\*.opencover.xml", 
             coverageDirectory,
             new ReportGeneratorSettings(){
-        ReportTypes = new[] { ReportGeneratorReportType.HtmlInline }
+                ReportTypes = new[] { ReportGeneratorReportType.HtmlInline }
             });
     });
 

@@ -1,0 +1,49 @@
+name: $(Date:yyyyMMdd)$(Rev:.r)
+pr:
+- master
+
+trigger:
+- master
+
+pool:
+  vmImage: 'Ubuntu-16.04'
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+- script: |
+    sh build.sh -target=Coverage
+    sh build.sh -target=IntegrationTest
+  condition: and(succeeded(), eq(variables['build.reason'], 'PullRequest'))
+  displayName: 'Tests'
+- task: CopyFiles@2
+  condition: and(succeeded(), eq(variables['build.reason'], 'PullRequest'))
+  inputs:
+    contents: $(Build.SourcesDirectory)/Tests/coverage-results/coverage.cobertura.xml
+    targetFolder: $(Build.SourcesDirectory)/results
+    flattenFolders: true
+- task: PublishTestResults@2
+  condition: and(succeeded(), eq(variables['build.reason'], 'PullRequest'))
+  inputs:
+    testRunner: VSTest
+    testResultsFiles: '$(Build.SourcesDirectory)/Tests/coverage-results/**/*.trx'
+- task: PublishCodeCoverageResults@1
+  condition: and(succeeded(), eq(variables['build.reason'], 'PullRequest'))
+  inputs:
+    summaryFileLocation: $(Build.SourcesDirectory)/results/coverage.cobertura.xml
+    reportDirectory: $(Build.SourcesDirectory)/results
+    codecoverageTool: cobertura
+- script: dotnet build ServiceName.sln --configuration $(buildConfiguration)
+  displayName: 'dotnet build $(buildConfiguration)'
+- task: DotNetCoreCLI@2
+  condition: and(succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
+  inputs:
+    command: publish
+    arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+    projects: Src/Service/Service.csproj
+    publishWebProjects: false
+    modifyOutputPath: true
+    zipAfterPublish: true
+- task: PublishBuildArtifacts@1
+  condition: and(succeeded(), in(variables['Build.Reason'], 'IndividualCI', 'BatchedCI'))
