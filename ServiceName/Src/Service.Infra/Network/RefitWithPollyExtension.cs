@@ -19,7 +19,6 @@ namespace Service.Infra.Network
             services.Configure<PollyOptions>(PollyOptions.Section, configuration);
             services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<PollyOptions>>().CurrentValue);
             services.AddPolicyRegistry();
-            services.AddDistributedMemoryCache();
             services.AddSingleton(serviceProvider => serviceProvider
                 .GetRequiredService<IDistributedCache>()
                 .AsAsyncCacheProvider<string>());

@@ -41,7 +41,10 @@ namespace Service.Api
             services.AddCorrelationId();
             services.AddOptions();
             services.Configure<EndpointsOptions>(Configuration.GetSection(EndpointsOptions.Section));
-            services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<EndpointsOptions>>().CurrentValue);
+            services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<EndpointsOptions>>().CurrentValue);            
+            services.AddDistributedMemoryCache();
+            services.AddResponseCaching();
+            services.AddResponseCompression();
             services.AddRefitWithPolly<EndpointsOptions>(Configuration, config =>
                 {
                     config.Configure<ISomeoneApi>(it => it.Mock);
@@ -74,6 +77,8 @@ namespace Service.Api
             app.UseHttpsRedirection();
             app.UseDefaultAuthentication();
             app.UseConsul();
+            app.UseResponseCaching();
+            app.UseResponseCompression();
             app.UseMvc();
             app.UseRebus();
         }
