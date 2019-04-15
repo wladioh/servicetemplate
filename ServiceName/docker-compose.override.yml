@@ -4,6 +4,9 @@ services:
   containername:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - MessageBus__ConnectionString=amqp://guest:guest@rabbitmq
+      - Database__ConnectionString=mongodb://mongodb
+      - ServiceConfiguration__ConnectionString=http://consul:8500
     build:
       args:
         RUNTIME_IMAGE_VERSION: aspnetcore-runtime

@@ -1,7 +1,7 @@
 version: '3.4'
 networks:
-  containernamenetwork:
-    external: false
+  servicesnet:
+    external: true
 
 services:
   containername:
@@ -22,7 +22,7 @@ services:
       - "9999:80"
       - "4399:443"
     networks:
-      - containernamenetwork
+      - servicesnet
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/liveness"]
       interval: 30s

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Http.Headers;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -37,6 +38,7 @@ namespace Service.Infra.Network
                     var url = func?.Invoke(configuration);
                     client.BaseAddress = new Uri(url);
                     client.Timeout = TimeSpan.FromMilliseconds(3000);
+                    client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
                 })
                 .SetHandlerLifetime(TimeSpan.FromMinutes(5))  //Set lifetime to five minutes
                 .AddHttpMessageHandler<MessageHandler>();
