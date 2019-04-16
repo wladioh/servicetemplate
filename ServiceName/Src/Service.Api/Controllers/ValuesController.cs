@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Localization;
+using Polenter.Serialization;
 using Rebus.Bus;
 using Service.Api.Resources;
 using Service.Domain;
@@ -20,11 +22,11 @@ namespace Service.Api.Controllers
         private readonly IStringLocalizer<SharedResource> _i18N;
         private readonly ISomeoneApi _someone;
         private readonly IBus _bus;
-        private readonly IClassRepository _repository;
+        private readonly IValueRepository _repository;
         private readonly IDistributedCache _cache;
 
         public ValuesController(IStringLocalizer<SharedResource> i18N, ISomeoneApi someone,
-            IBus bus, IClassRepository repository, IDistributedCache cache)
+            IBus bus, IValueRepository repository, IDistributedCache cache)
         {
             _i18N = i18N;
             _someone = someone;
@@ -34,28 +36,11 @@ namespace Service.Api.Controllers
         }
         // GET api/values
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<Value>), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<IEnumerable<SomeoneApiValue>>> Get()
         {
-            var random = new Random(Guid.NewGuid().GetHashCode());
-            var x = 0;
-            var sucess = 0;
-            var error = 0;
-            var results = new List<SomeoneApiValue>();
-            while (x < 100)
-            {
-                var re = await _someone.Get(random.Next(1, 500));
-                if (re.IsSuccessStatusCode)
-                {
-                    results.Add(re.Content);
-                    sucess++;
-                }
-                else
-                    error++;
-                x++;
-            }
-            Console.WriteLine($"Result = {sucess}");
-            Console.WriteLine($"Errors = {error}");
-            return results;
+            var values = await _repository.GetAllAsync().ConfigureAwait(false);
+            return Ok(values);
         }
 
         // GET api/values/5
@@ -63,22 +48,41 @@ namespace Service.Api.Controllers
         public async Task<IActionResult> Get(int id)
         {
             var re = await _someone.Get(id);
-            var x = await _cache.GetOrSetAsync("All",
-                async () => await _repository.GetAll(), 
-                new DistributedCacheEntryOptions());
             if (re.IsSuccessStatusCode)
                 return Ok(re.Content);
             return BadRequest(re.Error.Content);
         }
-
+        // GET api/values/5
+        [HttpGet("cache/{id:guid}")]
+        [ProducesResponseType(typeof(Value), (int)HttpStatusCode.OK), ProducesResponseType((int)HttpStatusCode.NotFound)]
+        public async Task<IActionResult> GetCache(Guid id)
+        {
+            var x = await _cache.GetOrSetAsync($"value{id}",
+                async () => await _repository.GetById(id),
+                new DistributedCacheEntryOptions());
+            if (x is null)
+                return NotFound(id);
+            return Ok(x);
+        }
+        [HttpGet("db/{id:guid}")]
+        [ProducesResponseType(typeof(Value), (int)HttpStatusCode.OK), ProducesResponseType((int)HttpStatusCode.NotFound)]
+        public async Task<IActionResult> GetDb(Guid id)
+        {
+            var x = await _repository.GetById(id).ConfigureAwait(false);
+            if (x is null)
+                return NotFound(id);
+            return Ok(x);
+        }
         // POST api/values
         [HttpPost]
-        public async Task Post([FromBody] string value)
+        public async Task<IActionResult> Post([FromBody] string value)
         {
-            await _repository.Add(new Value
+            var x = new Value
             {
                 Name = value
-            });
+            };
+            await _repository.Add(x);
+            return Ok(new { x.Id });
         }
 
         // PUT api/values/5
@@ -88,14 +92,16 @@ namespace Service.Api.Controllers
         }
 
         // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        [HttpDelete("{id:guid}")]
+        public async Task DeleteAsync(Guid id)
         {
+            await _repository.DeleteAsync(id).ConfigureAwait(false);
         }
     }
 
     public static class DistributedCaching
     {
+
         public static async Task SetAsync<T>(this IDistributedCache distributedCache, string key, T value, DistributedCacheEntryOptions options, CancellationToken token = default)
         {
             await distributedCache.SetAsync(key, value.ToByteArray(), options, token);
@@ -108,13 +114,13 @@ namespace Service.Api.Controllers
         }
 
         public static async Task<T> GetOrSetAsync<T>(this IDistributedCache distributedCache,
-            string key, Func<T> factory, DistributedCacheEntryOptions options, CancellationToken token = default) where T : class
+            string key, Func<Task<T>> factory, DistributedCacheEntryOptions options, CancellationToken token = default) where T : class
         {
             var result = await distributedCache.GetAsync(key, token);
             var resultTyped = result.FromByteArray<T>();
             if (resultTyped is null)
             {
-                resultTyped = factory();
+                resultTyped = await factory?.Invoke();
                 if (resultTyped is null)
                     return null;
                 await distributedCache.SetAsync(key, resultTyped, options, token);
@@ -132,10 +138,16 @@ namespace Service.Api.Controllers
             {
                 return null;
             }
-            var binaryFormatter = new BinaryFormatter();
+            var settings = new SharpSerializerBinarySettings(BinarySerializationMode.Burst)
+            {
+                IncludeAssemblyVersionInTypeName = true,
+                IncludeCultureInTypeName = true,
+                IncludePublicKeyTokenInTypeName = true
+            };
+            var serializer = new SharpSerializer(settings);
             using (var memoryStream = new MemoryStream())
             {
-                binaryFormatter.Serialize(memoryStream, obj);
+                serializer.Serialize(obj, memoryStream);
                 return memoryStream.ToArray();
             }
         }
@@ -146,12 +158,23 @@ namespace Service.Api.Controllers
             {
                 return default;
             }
-            var binaryFormatter = new BinaryFormatter();
+            var settings = new SharpSerializerBinarySettings(BinarySerializationMode.Burst)
+            {
+                IncludeAssemblyVersionInTypeName = true,
+                IncludeCultureInTypeName = true,
+                IncludePublicKeyTokenInTypeName = true
+            };
+            var serializer = new SharpSerializer(settings);
             using (var memoryStream = new MemoryStream(byteArray))
             {
-                return binaryFormatter.Deserialize(memoryStream) as T;
+                return serializer.Deserialize(memoryStream) as T;
             }
         }
+
+    }
+
+    public class CacheAttribute
+    {
 
     }
 }

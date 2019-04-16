@@ -1,4 +1,9 @@
 # Startup Guide
+## Helper Links
+
+https://morelinq.github.io/
+https://github.com/Humanizr/Humanizer
+https://localhost/mini-profiler-resources/results
 
 ## Docker Compose
 - The project have support to docker compose and run this project with docker compose run de follown command: 

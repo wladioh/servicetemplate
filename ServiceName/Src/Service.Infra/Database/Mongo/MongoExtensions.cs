@@ -49,7 +49,10 @@ namespace Service.Infra.Database.Mongo
                 var options = provider.GetService<DatabaseOptions>();
                 var settings = MongoClientSettings.FromUrl(
                     new MongoUrl(options.ConnectionString));
-
+                settings.MaxConnectionPoolSize = 100;
+                settings.WaitQueueSize = 5000;
+                settings.MaxConnectionIdleTime = TimeSpan.FromSeconds(30);
+                settings.WaitQueueTimeout = TimeSpan.FromSeconds(10);
                 if (options.SslEnabled)
                     settings.SslSettings = new SslSettings { EnabledSslProtocols = SslProtocols.Tls12 };
                 var mongoClient = new MongoClient(settings);

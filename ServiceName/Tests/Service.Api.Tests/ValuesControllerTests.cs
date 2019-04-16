@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Localization;
 using Moq;
 using Rebus.Bus;
@@ -19,7 +20,8 @@ namespace Service.Api.Tests
         private readonly Mock<IStringLocalizer<SharedResource>> _i18N;
         private readonly Mock<ISomeoneApi> _api;
         private readonly Mock<IBus> _bus;
-        private readonly Mock<IClassRepository> _repository;
+        private readonly Mock<IValueRepository> _repository;
+        private readonly Mock<IDistributedCache> _cache;
         private readonly ValuesController _controller;
 
         public ValuesControllerTests()
@@ -28,8 +30,9 @@ namespace Service.Api.Tests
             _i18N = _mockRepository.Create<IStringLocalizer<SharedResource>>();
             _api = _mockRepository.Create<ISomeoneApi>();
             _bus = _mockRepository.Create<IBus>();
-            _repository = _mockRepository.Create<IClassRepository>();
-            _controller = new ValuesController(_i18N.Object, _api.Object, _bus.Object, _repository.Object);
+            _repository = _mockRepository.Create<IValueRepository>();
+            _cache = _mockRepository.Create<IDistributedCache>();
+            _controller = new ValuesController(_i18N.Object, _api.Object, _bus.Object, _repository.Object, _cache.Object);
         }
         [Fact]
         public async Task SingleTest()
