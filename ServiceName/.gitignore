@@ -268,3 +268,5 @@ tools/**
 !tools/build.ps1
 !tools/build.sh
 !tools/build.cake
+!tools/docker-compose-infra.yml
+!tools/ServiceName.yaml

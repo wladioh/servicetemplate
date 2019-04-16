@@ -1,0 +1,40 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: servicename
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: servicename
+    spec:
+      containers:
+      - name: servicename
+        image: servicename
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 250m
+          limits:
+            cpu: 500m
+      imagePullSecrets:
+      - name: $(SecretName)
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: servicename-svc
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 10.240.0.11
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: servicename
