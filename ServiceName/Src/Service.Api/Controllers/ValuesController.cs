@@ -64,7 +64,8 @@ namespace Service.Api.Controllers
         {
             var re = await _someone.Get(id);
             var x = await _cache.GetOrSetAsync("All",
-                async () => await _repository.GetAll(), new DistributedCacheEntryOptions());
+                async () => await _repository.GetAll(), 
+                new DistributedCacheEntryOptions());
             if (re.IsSuccessStatusCode)
                 return Ok(re.Content);
             return BadRequest(re.Error.Content);
