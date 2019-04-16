@@ -103,11 +103,11 @@ namespace Service.Infra.Database.Mongo
         }
 
         public static async Task CreateIndex<T>(this IMongoDatabase database,
-            Func<IndexKeysDefinitionBuilder<T>, IndexKeysDefinition<T>> BuildIndex)
+            Func<IndexKeysDefinitionBuilder<T>, IndexKeysDefinition<T>> buildIndex)
         {
             var notificationLogBuilder = Builders<T>.IndexKeys;
             var collection = database.GetCollection<T>(typeof(T).Name);
-            var indexModel = new CreateIndexModel<T>(BuildIndex?.Invoke(notificationLogBuilder));
+            var indexModel = new CreateIndexModel<T>(buildIndex?.Invoke(notificationLogBuilder));
             await collection.Indexes.CreateOneAsync(indexModel).ConfigureAwait(false);
         }
     }

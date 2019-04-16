@@ -64,7 +64,7 @@ namespace Service.Integration.Tests
 
             response.EnsureSuccessStatusCode(); // Status Code 200-299
             response.StatusCode.Should().Be(HttpStatusCode.OK);
-            var collection = _factory.MongoDB.GetCollection<Value>(typeof(Value).Name);
+            var collection = _factory.MongoDb.GetCollection<Value>(typeof(Value).Name);
             var savedMessage = collection.FindSync(it => it.Name == name).FirstOrDefault();
             savedMessage.Should().NotBeNull();
         }

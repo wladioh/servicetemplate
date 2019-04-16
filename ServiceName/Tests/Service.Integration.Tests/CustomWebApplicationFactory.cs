@@ -20,7 +20,7 @@ namespace Service.Integration.Tests
     public class CustomWebApplicationFactory<TStartup>
         : WebApplicationFactory<TStartup> where TStartup : class
     {
-        private static readonly Dictionary<string, string> dict =
+        private static readonly Dictionary<string, string> Dict =
             new Dictionary<string, string>
             {
                 {"Endpoints:Mock", "http://localhost:5001"},
@@ -30,7 +30,7 @@ namespace Service.Integration.Tests
         public readonly MongoDbRunner Runner = MongoDbRunner.Start();
         private IBus _bus;
         public FluentMockServer WireMockServer { get; }
-        public IMongoDatabase MongoDB { get; }
+        public IMongoDatabase MongoDb { get; }
         public MessageHelper MessageReceiver { get; }
         private Action<StandardConfigurer<Rebus.Routing.IRouter>> _router;
         public IBus Bus => _bus ?? (_bus = BusHelper.Create(MessageReceiver, InMemoryBus, "TestQueue", _router));
@@ -44,7 +44,7 @@ namespace Service.Integration.Tests
                 Port = 5001
             };
             WireMockServer = StandAloneApp.Start(settings);
-            MongoDB = new MongoClient(Runner.ConnectionString).GetDatabase("ServiceName");
+            MongoDb = new MongoClient(Runner.ConnectionString).GetDatabase("ServiceName");
 
             MessageReceiver = new MessageHelper(InMemoryBus);
             //mock consul request
@@ -58,8 +58,8 @@ namespace Service.Integration.Tests
                 .UseSetting("ServiceConfiguration:ConnectionString", "http://localhost:5001")
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
-                    dict.Add("Database:ConnectionString", Runner.ConnectionString);
-                    config.AddInMemoryCollection(dict);
+                    Dict.Add("Database:ConnectionString", Runner.ConnectionString);
+                    config.AddInMemoryCollection(Dict);
                 }).ConfigureServices((build, collection) =>
                 {
                     collection.AddSingleton(InMemoryBus);

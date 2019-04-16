@@ -72,34 +72,33 @@ namespace Service.Infra.Network
 
         private AsyncCachePolicy<HttpResponseMessage> CachePolicy()
         {
-            Ttl cacheOnly200OKfilter(Context context, HttpResponseMessage result)
-            {
-                return new Ttl(
-                    timeSpan: result.StatusCode == HttpStatusCode.OK ? TimeSpan.FromMinutes(_options.Cache.TimeSpan) : TimeSpan.Zero,
-                    slidingExpiration: true
-                );
-            }
-
             var cache = Policy.CacheAsync(_cacheProvider,
-                new ResultTtl<HttpResponseMessage>(cacheOnly200OKfilter),
+                new ResultTtl<HttpResponseMessage>(CacheOnly200OkFilter),
                 context => context.OperationKey,
                 (context, s) => { },
-                onCacheMiss,
+                OnCacheMiss,
                 (context, s) => { },
-                onCacheGetError: onGetError,
-                onCachePutError: onPutError);
+                OnGetError,
+                OnPutError);
             return cache;
-            void onCacheMiss(Context context, string key)
+            Ttl CacheOnly200OkFilter(Context context, HttpResponseMessage result)
+            {
+                return new Ttl(
+                    result.StatusCode == HttpStatusCode.OK ? TimeSpan.FromMinutes(_options.Cache.TimeSpan) : TimeSpan.Zero,
+                    true
+                );
+            }
+            void OnCacheMiss(Context context, string key)
             {
                 _logger.LogInformation("[Cache Policy][Miss] key: {operationKey} - id: {id} - cacheKey: {key}",
                     context.OperationKey, context.CorrelationId, key);
             }
-            void onGetError(Context context, string key, Exception ex)
+            void OnGetError(Context context, string key, Exception ex)
             {
                 _logger.LogError(ex, "[Cache Policy][Get] key: {operationKey} - id: {id} - cacheKey: {key}",
                     context.OperationKey, context.CorrelationId, key);
             }
-            void onPutError(Context context, string key, Exception ex)
+            void OnPutError(Context context, string key, Exception ex)
             {
                 _logger.LogError(ex, "[Cache Policy][Put] key: {operationKey} - id: {id} - cacheKey: {key}",
                     context.OperationKey, context.CorrelationId, key);
@@ -123,7 +122,7 @@ namespace Service.Infra.Network
             };
 
             var fallback = HttpPolicyExtensions.HandleTransientHttpError()
-                .FallbackAsync(responseMessage, onFallbackAsync: OnFallbackAsync);
+                .FallbackAsync(responseMessage, OnFallbackAsync);
             return fallback;
         }
 
@@ -135,14 +134,14 @@ namespace Service.Infra.Network
                 .AdvancedCircuitBreakerAsync(
                     _options.CircuitBreak.FailureThreshold, samplingDuration,
                     _options.CircuitBreak.MinimumThroughput, durationOfBreak,
-                    onBreak, onOpen);
+                    OnBreak, OnOpen);
             return circuitBreaker;
-            void onBreak(DelegateResult<HttpResponseMessage> delegateResult, TimeSpan span, Context context)
+            void OnBreak(DelegateResult<HttpResponseMessage> delegateResult, TimeSpan span, Context context)
             {
                 _logger.LogWarning("[CircuitBreak Policy][Close] key: {operationKey} - id: {id}",
                     context.OperationKey, context.CorrelationId);
             }
-            void onOpen(Context context)
+            void OnOpen(Context context)
             {
                 _logger.LogInformation("[CircuitBreak Policy][Open] key: {operationKey} - id: {id}",
                     context.OperationKey, context.CorrelationId);

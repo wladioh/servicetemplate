@@ -22,8 +22,8 @@ namespace Service.Infra.MessageBus.Rebus
 {
     public static class RebusExtensions
     {
-        private static readonly string _directExchange = "DirectExchange";
-        private static readonly string _topicExchange = "TopicsExchange";
+        private static readonly string DirectExchange = "DirectExchange";
+        private static readonly string TopicExchange = "TopicsExchange";
 
         public static IServiceCollection AddRebus<THandler>(this IServiceCollection services, IConfiguration configuration, Action<StandardConfigurer<IRouter>> action = null)
         {
@@ -46,7 +46,7 @@ namespace Service.Infra.MessageBus.Rebus
             void ConfigureRabbit(StandardConfigurer<ITransport> t)
             {
                 t.UseRabbitMq(rebusConfig.ConnectionString, rebusConfig.Queue)
-                    .ExchangeNames(_directExchange, _topicExchange)
+                    .ExchangeNames(DirectExchange, TopicExchange)
                     .Prefetch(rebusConfig.Prefetch);
             }
 
@@ -62,7 +62,7 @@ namespace Service.Infra.MessageBus.Rebus
                 t.UseInMemoryTransport(serviceProvider.GetService<InMemNetwork>(), rebusConfig.Queue);
             }
 
-            void configureTransport(StandardConfigurer<ITransport> t, IServiceProvider serviceProvider)
+            void ConfigureTransport(StandardConfigurer<ITransport> t, IServiceProvider serviceProvider)
             {
                 switch (rebusConfig.Transport)
                 {
@@ -80,12 +80,12 @@ namespace Service.Infra.MessageBus.Rebus
                 }
             }
 
-            void configureLogging(RebusLoggingConfigurer l, IServiceProvider serviceProvider)
+            void ConfigureLogging(RebusLoggingConfigurer l, IServiceProvider serviceProvider)
             {
                 l.MicrosoftExtensionsLogging(serviceProvider.GetService<ILoggerFactory>());
             }
 
-            void configureSagas(StandardConfigurer<ISagaStorage> s, IServiceProvider serviceProvider)
+            void ConfigureSagas(StandardConfigurer<ISagaStorage> s, IServiceProvider serviceProvider)
             {
                 if (rebusConfig.Transport == MessageBusOptions.TransportOptions.Memory)
                     s.StoreInMemory();
@@ -93,12 +93,12 @@ namespace Service.Infra.MessageBus.Rebus
                     s.StoreInMongoDb(serviceProvider.GetService<IMongoDatabase>());
             }
 
-            void configureSerialization(StandardConfigurer<ISerializer> s, IServiceProvider serviceProvider)
+            void ConfigureSerialization(StandardConfigurer<ISerializer> s, IServiceProvider serviceProvider)
             {
                 s.UseNewtonsoftJson(JsonInteroperabilityMode.FullTypeInformation);
             }
 
-            void configureOptions(OptionsConfigurer o, IServiceProvider serviceProvider)
+            void ConfigureOptions(OptionsConfigurer o, IServiceProvider serviceProvider)
             {
                 o.EnableIdempotentSagas();
                 o.SetMaxParallelism(rebusConfig.MaxParallelism);
@@ -106,7 +106,7 @@ namespace Service.Infra.MessageBus.Rebus
                 o.SimpleRetryStrategy(maxDeliveryAttempts: rebusConfig.Retry, errorQueueAddress: rebusConfig.ErrorQueue);
             }
 
-            void configureTimeouts(StandardConfigurer<ITimeoutManager> t, IServiceProvider serviceProvider)
+            void ConfigureTimeouts(StandardConfigurer<ITimeoutManager> t, IServiceProvider serviceProvider)
             {
                 if (rebusConfig.Transport == MessageBusOptions.TransportOptions.Memory)
                     t.StoreInMemory();
@@ -114,20 +114,20 @@ namespace Service.Infra.MessageBus.Rebus
                     t.StoreInMongoDb(serviceProvider.GetService<IMongoDatabase>(), "TimeOutRebus");
             }
 
-            void subscriptions(StandardConfigurer<ISubscriptionStorage> t)
+            void Subscriptions(StandardConfigurer<ISubscriptionStorage> t)
             {
                 if (rebusConfig.Transport == MessageBusOptions.TransportOptions.Memory)
                     t.StoreInMemory();
             }
 
             return (configure, provider) => configure
-                   .Logging(it => configureLogging(it, provider))
-                   .Transport(it => configureTransport(it, provider))
-                   .Sagas(it => configureSagas(it, provider))
-                   .Serialization(it => configureSerialization(it, provider))
-                   .Subscriptions(subscriptions)
-                   .Options(it => configureOptions(it, provider))
-                   .Timeouts(it => configureTimeouts(it, provider))
+                   .Logging(it => ConfigureLogging(it, provider))
+                   .Transport(it => ConfigureTransport(it, provider))
+                   .Sagas(it => ConfigureSagas(it, provider))
+                   .Serialization(it => ConfigureSerialization(it, provider))
+                   .Subscriptions(Subscriptions)
+                   .Options(it => ConfigureOptions(it, provider))
+                   .Timeouts(it => ConfigureTimeouts(it, provider))
                    .Routing(r => action?.Invoke(r));
         }
     }
