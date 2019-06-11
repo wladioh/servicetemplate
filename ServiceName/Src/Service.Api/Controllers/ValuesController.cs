@@ -5,11 +5,11 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Localization;
 using Polenter.Serialization;
 using Rebus.Bus;
+using Service.Api.Integrations;
 using Service.Api.Resources;
 using Service.Domain;
 
@@ -20,16 +20,16 @@ namespace Service.Api.Controllers
     public class ValuesController : ControllerBase
     {
         private readonly IStringLocalizer<SharedResource> _i18N;
-        private readonly ISomeoneApi _someone;
+        private readonly IPokemonApi _pokemon;
         private readonly IBus _bus;
         private readonly IValueRepository _repository;
         private readonly IDistributedCache _cache;
 
-        public ValuesController(IStringLocalizer<SharedResource> i18N, ISomeoneApi someone,
+        public ValuesController(IStringLocalizer<SharedResource> i18N, IPokemonApi pokemon,
             IBus bus, IValueRepository repository, IDistributedCache cache)
         {
             _i18N = i18N;
-            _someone = someone;
+            _pokemon = pokemon;
             _bus = bus;
             _repository = repository;
             _cache = cache;
@@ -37,7 +37,7 @@ namespace Service.Api.Controllers
         // GET api/values
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<Value>), (int)HttpStatusCode.OK)]
-        public async Task<ActionResult<IEnumerable<SomeoneApiValue>>> Get()
+        public async Task<IActionResult> Get()
         {
             var values = await _repository.GetAllAsync().ConfigureAwait(false);
             return Ok(values);
@@ -47,7 +47,7 @@ namespace Service.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var re = await _someone.Get(id);
+            var re = await _pokemon.Get(id.ToString());
             if (re.IsSuccessStatusCode)
                 return Ok(re.Content);
             return BadRequest(re.Error.Content);
@@ -57,21 +57,21 @@ namespace Service.Api.Controllers
         [ProducesResponseType(typeof(Value), (int)HttpStatusCode.OK), ProducesResponseType((int)HttpStatusCode.NotFound)]
         public async Task<IActionResult> GetCache(Guid id)
         {
-            var x = await _cache.GetOrSetAsync($"value{id}",
+            var value = await _cache.GetOrSetAsync($"value{id}",
                 async () => await _repository.GetById(id),
                 new DistributedCacheEntryOptions());
-            if (x is null)
+            if (value is null)
                 return NotFound(id);
-            return Ok(x);
+            return Ok(value);
         }
         [HttpGet("db/{id:guid}")]
         [ProducesResponseType(typeof(Value), (int)HttpStatusCode.OK), ProducesResponseType((int)HttpStatusCode.NotFound)]
         public async Task<IActionResult> GetDb(Guid id)
         {
-            var x = await _repository.GetById(id).ConfigureAwait(false);
-            if (x is null)
+            var value = await _repository.GetById(id).ConfigureAwait(false);
+            if (value is null)
                 return NotFound(id);
-            return Ok(x);
+            return Ok(value);
         }
         // POST api/values
         [HttpPost]
@@ -170,11 +170,6 @@ namespace Service.Api.Controllers
                 return serializer.Deserialize(memoryStream) as T;
             }
         }
-
-    }
-
-    public class CacheAttribute
-    {
 
     }
 }

@@ -8,6 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Rebus.Routing.TypeBased;
 using Service.Api.Extensions;
+using Service.Api.Handlers;
+using Service.Api.Integrations;
+using Service.Api.Options;
 using Service.Infra.ConfigurationService;
 using Service.Infra.Database.Mongo;
 using Service.Infra.MessageBus.Rebus;
@@ -49,7 +52,7 @@ namespace Service.Api
             services.AddResponseCompression();
             services.AddRefitWithPolly<EndpointsOptions>(Configuration, config =>
                 {
-                    config.Configure<ISomeoneApi>(it => it.Mock);
+                    config.Configure<IPokemonApi>(it => it.Mock);
                 });
             services.AddMongo();
             services.AddMongoRepositories();

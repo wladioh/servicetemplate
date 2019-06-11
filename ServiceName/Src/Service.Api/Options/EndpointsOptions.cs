@@ -1,4 +1,4 @@
-﻿namespace Service.Api
+﻿namespace Service.Api.Options
 {
     public class EndpointsOptions
     {

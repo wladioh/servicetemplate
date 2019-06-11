@@ -2,7 +2,7 @@
 using Rebus.Bus;
 using Service.Infra.MessageBus;
 
-namespace Service.Api
+namespace Service.Api.Handlers
 {
     public class TestHandler: IMessageHandler<TestMessage>,
         IMessageHandler<OtherMessage>,
