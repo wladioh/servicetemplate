@@ -1,0 +1,45 @@
+apiVersion: flagger.app/v1alpha3
+kind: Canary
+metadata:
+  name: dashboard
+spec:
+  # provider: linkerd
+  # ingressRef:
+  #   apiVersion: extensions/v1beta1
+  #   kind: Ingress
+  #   name: dashboard
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: dashboard    
+  autoscalerRef:
+    apiVersion: autoscaling/v2beta1
+    kind: HorizontalPodAutoscaler
+    name: dashboard
+  # progressDeadlineSeconds: 600
+  service:
+    port: 9002
+  ingressRef:
+    apiVersion: extensions/v1beta1
+    kind: Ingress
+    name: dashboard
+  canaryAnalysis:
+    interval: 10s
+    threshold: 5
+    stepWeight: 10
+    metrics:
+    - name: request-success-rate
+      threshold: 99
+      interval: 1m
+    - interval: 30s
+      name: request-duration
+      threshold: 500
+    match:
+      # curl -H 'X-Canary: always' http://app.example.com
+      - headers:
+          x-canary:
+            exact: "always"
+      # curl -b 'canary=always' http://app.example.com
+      - headers:
+          cookie:
+            exact: "canary"

@@ -1,0 +1,97 @@
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: servicename-hpa
+  labels:
+    k8s-app: servicename           
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: servicename
+  minReplicas: 2
+  maxReplicas: 15
+  metrics:
+    - resource:
+        name: cpu
+        targetAverageUtilization: 100
+      type: Resource
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: servicename-deployment
+  labels:
+    k8s-app: servicename            
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: servicename
+  template:
+    metadata:
+      labels:
+        app: servicename
+        k8s-app: servicename
+    spec:
+      containers:
+      - name: servicename-container
+        image: gitea/gitea:1.4
+        ports:
+        - containerPort: 3000
+          name: http
+        - containerPort: 22
+          name: ssh
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits: 
+            cpu: "100m"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /version
+            port: http
+          timeoutSeconds: 5
+          initialDelaySeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /version
+            port: http
+          timeoutSeconds: 5
+          initialDelaySeconds: 20
+---
+kind: Service                   #+
+apiVersion: v1                  #+
+metadata:                       #+
+  name: servicename-service     #+               #+
+  labels:
+    k8s-app: servicename
+spec:                           #+
+  selector:                     #+
+    app: servicename            #+
+  ports:                        #+
+  - protocol: TCP               #+
+    targetPort: http            #+
+    port: 81                   #+
+    name: http                  #+
+  - protocol: TCP               #+
+    targetPort: ssh             #+
+    port: 22                    #+
+    name: ssh                   #+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: services-ingress
+  labels:
+    k8s-app: servicename
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: servicename-service
+          servicePort: 81
