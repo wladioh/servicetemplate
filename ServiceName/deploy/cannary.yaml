@@ -3,11 +3,6 @@ kind: Canary
 metadata:
   name: dashboard
 spec:
-  # provider: linkerd
-  # ingressRef:
-  #   apiVersion: extensions/v1beta1
-  #   kind: Ingress
-  #   name: dashboard
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
@@ -19,14 +14,17 @@ spec:
   # progressDeadlineSeconds: 600
   service:
     port: 9002
-  ingressRef:
-    apiVersion: extensions/v1beta1
-    kind: Ingress
-    name: dashboard
+  # A/B Test
+  # provider: nginx
+  # ingressRef:
+  #   apiVersion: extensions/v1beta1
+  #   kind: Ingress
+  #   name: dashboard      
   canaryAnalysis:
-    interval: 10s
+    interval: 30s
     threshold: 5
-    stepWeight: 10
+    stepWeight: 5
+    maxWeight: 50
     metrics:
     - name: request-success-rate
       threshold: 99
@@ -34,12 +32,25 @@ spec:
     - interval: 30s
       name: request-duration
       threshold: 500
-    match:
-      # curl -H 'X-Canary: always' http://app.example.com
-      - headers:
-          x-canary:
-            exact: "always"
-      # curl -b 'canary=always' http://app.example.com
-      - headers:
-          cookie:
-            exact: "canary"
+    # A/B Test
+    # iterations: 10
+    # match:
+    #   # curl -H 'X-Canary: always' http://app.example.com
+    #   - headers:
+    #       x-canary:
+    #         exact: "always"
+    #   # curl -b 'canary=always' http://app.example.com
+    #   - headers:
+    #       cookie:
+    #         exact: "canary"
+    webhooks:
+      - name: acceptance-test
+        type: pre-rollout
+        url: http://flagger-loadtester.test/
+        timeout: 30s
+        metadata:
+          type: cmd
+          cmd: "hey -z 1m -q 10 -c 2 http://dashboard-canary:9002"
+      - name: "ask for confirmation"
+        type: confirm-rollout
+        url: http://flagger-loadtester.test/gate/check

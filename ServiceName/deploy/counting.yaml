@@ -52,19 +52,7 @@ spec:
             path: /health
             port: http
           timeoutSeconds: 1
-          initialDelaySeconds: 30
-      initContainers:
-        - name: counting-init
-          image: hashicorp/counting-init:0.0.9
-          env:
-          - name: POD_IP
-            valueFrom:
-              fieldRef:
-                fieldPath: status.podIP
-          - name: HOST_IP
-            valueFrom:
-              fieldRef:
-                fieldPath: status.hostIP
+          initialDelaySeconds: 30     
 ---
 kind: Service                   #+
 apiVersion: v1                  #+
