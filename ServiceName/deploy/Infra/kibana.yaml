@@ -15,8 +15,6 @@ spec:
       labels:
         app: kibana
         k8s-app: kibana
-      annotations:
-        "consul.hashicorp.com/connect-inject": "false"
     spec:
       containers:
       - name: kibana
@@ -35,10 +33,28 @@ metadata:
   labels:
     service: kibana
     k8s-app: kibana
-spec:
-  type: NodePort
+spec: 
   ports:
   - port: 5601
     name: webinterface
   selector:
     app: kibana
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: kibana
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/add-base-url: "true"
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /kibana
+        backend:
+          serviceName: kibana
+          servicePort: 5601

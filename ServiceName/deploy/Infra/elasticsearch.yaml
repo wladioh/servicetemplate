@@ -1,20 +1,21 @@
 #https://lernentec.com/post/running-simple-elasticsearch-kibana-minikube/
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  name: es-pv-volume
-  labels:
-    type: local
-    k8s-app: elasticsearch
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: \C\kubevolumes
----
+# não necessario para cloud
+# kind: PersistentVolume
+# apiVersion: v1
+# metadata:
+#   name: es-pv-volume
+#   labels:
+#     type: local
+#     k8s-app: elasticsearch
+# spec:
+#   storageClassName: default
+#   capacity:
+#     storage: 1Gi
+#   accessModes:
+#     - ReadWriteOnce
+#   hostPath:
+#     path: \C\kubevolumes
+# ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -22,6 +23,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: default
   resources:
     requests:
       storage: 1Gi
@@ -59,7 +61,7 @@ spec:
           name: nodes
         volumeMounts:
         - name: data
-          mountPath: \C\kubevolumes
+          mountPath: "/elastic"   
 ---
 apiVersion: v1
 kind: Service

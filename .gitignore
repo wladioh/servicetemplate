@@ -263,3 +263,4 @@ __pycache__/
 *.nupkg
 ServiceTeste/
 ServiceName/deploy/Infra/terraform/.terraform
+*.tefvars

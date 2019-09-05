@@ -1,4 +1,5 @@
-# terraform init -backend-config="storage_account_name=wladiohstateterraform" -backend-config="container_name=tfstate" -backend-config="access_key=" -backend-config="key=codelab.microsoft.tfstate"
+# terraform init -backend-config="access_key="
+# terraform apply -var-file="dev.tefvars"
 provider "azurerm"  {
   # whilst the `version` attribute is optional, we recommend pinning to a given version of the Provider
   version = "1.33.1"
@@ -8,8 +9,23 @@ provider "azurerm"  {
   tenant_id       = "1bf562e0-3df8-4dd4-867b-11e99fa72ad4"
 }
 
+// provider "azurerm" {
+//   alias  = "azure-accenture"
+//   version = "1.33.1"
+//   subscription_id = "cf979063-433f-4e43-9a61-df40231fcd7e"
+//   client_id       = "${var.client_id}"
+//   client_secret   = "${var.client_secret}" 
+//   tenant_id       = "1bf562e0-3df8-4dd4-867b-11e99fa72ad4"
+// }
+
 terraform {
-    backend "azurerm" {}
+    backend "azurerm" {
+      resource_group_name  = "terraform"
+      storage_account_name = "wladiohstateterraform"
+      container_name       = "tfstate"
+      key                  = "codelab.microsoft.tfstate"
+      // access_key           = "${var.backend_accesskey}"
+    }
 }
 
 # Create a resource group
@@ -25,11 +41,15 @@ resource "azurerm_kubernetes_cluster" "k8s" {
   dns_prefix          = "${var.prefix}-k8s"
 
   agent_pool_profile {
-    name            = "default"
-    count           = 1
-    vm_size         = "Standard_B2s"
-    os_type         = "Linux"
-    os_disk_size_gb = 30
+    name                      = "default"
+    count                     = 1
+    vm_size                   = "Standard_B2s"
+    os_type                   = "Linux"
+    os_disk_size_gb           = 30
+    type                      = "VirtualMachineScaleSets"
+    enable-cluster-autoscaler = true
+    min_count                 = 1
+    max_count                 = 2
   }
 
   service_principal {
@@ -37,18 +57,8 @@ resource "azurerm_kubernetes_cluster" "k8s" {
     client_secret = "${var.client_secret}"
   }
   
-  // provisioner "local-exec" {
-  //   command =  |
-  //     curl -sL https://run.linkerd.io/install | sh
-  //     export PATH=$PATH:$HOME/.linkerd2/bin
-  //     linkerd version
-  //     linkerd check --pre
-  //     linkerd install | kubectl apply -f -   
-  //     linkerd check
-  // }
-
   tags = {
-    Environment = "developement"
+    Environment = "develop"
   }  
 }
 
@@ -58,39 +68,55 @@ resource "local_file" "kubeconfig" {
   depends_on = [azurerm_resource_group.k8s]
 }
 
-resource "null_resource" "apply_config_map_auth" {
-  provisioner "local-exec" {
-    command = "kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml --kubeconfig=${local_file.kubeconfig.filename} >> private_ips.txt"
-  }
-
-  // provisioner "local-exec" {
-  //   when = "destroy"
-  //   command = "kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml --kubeconfig=${local_file.kubeconfig.filename}"
-  // }
-
-  depends_on = [local_file.kubeconfig]
-}
-
-// resource "null_resource" "install-linkerd" {
-//   provisioner "local-exec" {
-//     command = "linkerd install | kubectl --kubeconfig=${local_file.kubeconfig.filename} apply -f -"
-//   }
-
-//   provisioner "local-exec" {
-//     when = "destroy"
-//     command = "linkerd install --ignore-cluster | kubectl --kubeconfig=${local_file.kubeconfig.filename} delete -f -"
-//   }
-//   depends_on = [local_file.kubeconfig]
-// }
-
 provider "helm" {
     kubernetes {
         config_path = "${local_file.kubeconfig.filename}"
     }
 }
 
-resource "helm_release" "mydatabase" {
+resource "helm_release" "nginx-ingress" {
     name      = "nginx-ingress"
     chart     = "stable/nginx-ingress"
     namespace =  "ingress-nginx"
+}
+
+resource "null_resource" "install-linkerd" {
+  provisioner "local-exec" {
+    command = "linkerd install --kubeconfig=${local_file.kubeconfig.filename} | kubectl --kubeconfig=${local_file.kubeconfig.filename} apply -f -"
+  }
+  
+  provisioner "local-exec" {
+    command = "kubectl apply -f ./linkerd-ingress.yaml --kubeconfig=${local_file.kubeconfig.filename}"
+  }
+
+  // provisioner "local-exec" {
+  //   when = "destroy"
+  //   command = "kubectl delete -f ./linkerd-ingress.yaml --kubeconfig=${local_file.kubeconfig.filename}"
+  // }
+
+  // provisioner "local-exec" {
+  //   when = "destroy"
+  //   command = "linkerd install --ignore-cluster --kubeconfig=${local_file.kubeconfig.filename} | kubectl --kubeconfig=${local_file.kubeconfig.filename} delete -f -"
+  // }
+  depends_on = [azurerm_resource_group.k8s, local_file.kubeconfig]
+}
+
+resource "null_resource" "logging" {
+  provisioner "local-exec" {
+    working_dir = "../"
+    command = "kubectl create namespace kube-logging --kubeconfig=./terraform/${local_file.kubeconfig.filename}"
+  }
+  
+  provisioner "local-exec" {
+    working_dir = "../"
+    command = "kubectl apply -n kube-logging -f elasticsearch.yaml -f filebeat.yaml -f logstash.yaml -f curator-cronjob.yaml -f kibana.yaml  --kubeconfig=./terraform/${local_file.kubeconfig.filename}"
+  }
+
+  provisioner "local-exec" {
+    working_dir = "../"
+    when = "destroy"
+    command = "kubectl delete namespace kube-logging --kubeconfig=./terraform/${local_file.kubeconfig.filename}"
+  }
+
+  depends_on = [azurerm_resource_group.k8s, local_file.kubeconfig]
 }
