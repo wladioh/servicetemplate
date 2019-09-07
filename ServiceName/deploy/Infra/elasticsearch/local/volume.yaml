@@ -1,0 +1,15 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: es-pv-volume
+  labels:
+    type: local
+    k8s-app: elasticsearch
+spec:
+  storageClassName: default
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: \C\kubevolumes

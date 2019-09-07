@@ -4,12 +4,11 @@ kind: Kustomization
 
 # list of Resource Config to be Applied
 resources:
-- deployment.yaml
-
-# namespace to deploy all Resources to
-namespace: default
+- volume.yaml
+- statefulset.yaml
+- service.yaml
 
 # labels added to all Resources
 commonLabels:
-  app: example
-  env: test
+    app: elasticsearch
+

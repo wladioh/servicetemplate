@@ -55,6 +55,13 @@ spec:
             mountPath: /usr/share/logstash/config
           - name: logstash-pipeline-volume
             mountPath: /usr/share/logstash/pipeline
+        resources:
+          requests:
+            memory: 500Mi
+            cpu: 1
+          limits:
+            memory: 1Gi
+            cpu: 1 
       volumes:
       - name: config-volume
         configMap:
