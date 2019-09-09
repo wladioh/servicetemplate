@@ -16,7 +16,6 @@ docker-compose up
     kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml
     https://github.com/kubernetes/dashboard/wiki/Creating-sample-user
     kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}')
-    eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJ0dGwtY29udHJvbGxlci10b2tlbi1ybjVmNCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJ0dGwtY29udHJvbGxlciIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6ImMzM2E2ZmEzLWNiZmYtMTFlOS05YmE4LTAwMTU1ZDFkNWYyYiIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDprdWJlLXN5c3RlbTp0dGwtY29udHJvbGxlciJ9.LkP0Bung_cyoaJiONXfN5lYMeexgL0hkoeNmC_VRJ26f5e-ZO26d25se4dm6hXkg0Bjx1jO6VXNtu0mkxa3a44dDTw2D88i6h1a7Q1aFXVD-2kYGKqjZI2zyRk0tNnAsqJjD1mvRCPV3iC9-vvWIrG-KliJElWX8hANiQIHQ-0j6BdVWrh_YU4AFduJZoLL66wuppK2LXmRx7ZGTYxJrlzzTkjG3FYFuw1mRR_Nkgbi9IbQUiIDQS_mr0ld5RQpu63b0-uq3kyYfB5RcXSxblqHAtqtIPI71QAvlC6jV1h76JC5h9mbgmfiZCxnoykE1dp5i2vs5xSIxQ8HBBjY61w
 https://kubernetes.github.io/ingress-nginx/deploy/#provider-specific-steps
 - install nginx ingress
     helm upgrade -i nginx-ingress stable/nginx-ingress --namespace ingress-nginx 

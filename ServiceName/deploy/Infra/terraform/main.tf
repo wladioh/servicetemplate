@@ -9,22 +9,12 @@ provider "azurerm"  {
   tenant_id       = "1bf562e0-3df8-4dd4-867b-11e99fa72ad4"
 }
 
-// provider "azurerm" {
-//   alias  = "azure-accenture"
-//   version = "1.33.1"
-//   subscription_id = "cf979063-433f-4e43-9a61-df40231fcd7e"
-//   client_id       = "${var.client_id}"
-//   client_secret   = "${var.client_secret}" 
-//   tenant_id       = "1bf562e0-3df8-4dd4-867b-11e99fa72ad4"
-// }
-
 terraform {
     backend "azurerm" {
       resource_group_name  = "terraform"
       storage_account_name = "wladiohstateterraform"
       container_name       = "tfstate"
       key                  = "codelab.microsoft.tfstate"
-      // access_key           = "${var.backend_accesskey}"
     }
 }
 
@@ -86,9 +76,18 @@ resource "helm_release" "nginx-ingress" {
     namespace =  "ingress-nginx"
 }
 
+resource "helm_release" "elasticsearch" {
+    name      = "elasticsearch"
+    chart     = "stable/elastic-stack"
+    namespace =  "elasticsearch"
+    values = [
+      "${file("${path.module}/../elasticsearch/elasticstack-values-local.yaml")}"
+    ]
+}
+
 resource "null_resource" "install-linkerd" {
   provisioner "local-exec" {
-    command = "linkerd install --kubeconfig=${local_file.kubeconfig.filename} | kubectl --kubeconfig=${local_file.kubeconfig.filename} apply -f -"
+    command = "linkerd install --ha --kubeconfig=${local_file.kubeconfig.filename} | kubectl --kubeconfig=${local_file.kubeconfig.filename} apply -f -"
   }
   
   provisioner "local-exec" {
@@ -107,22 +106,26 @@ resource "null_resource" "install-linkerd" {
   depends_on = [azurerm_resource_group.k8s, local_file.kubeconfig]
 }
 
-resource "null_resource" "logging" {
-  provisioner "local-exec" {
-    working_dir = "../"
-    command = "kubectl create namespace kube-logging --kubeconfig=./terraform/${local_file.kubeconfig.filename}"
-  }
-  
-  provisioner "local-exec" {
-    working_dir = "../"
-    command = "kubectl apply -n kube-logging -f elasticsearch.yaml -f filebeat.yaml -f logstash.yaml -f curator-cronjob.yaml -f kibana.yaml  --kubeconfig=./terraform/${local_file.kubeconfig.filename}"
-  }
+data "helm_repository" "flagger" {
+    name = "flagger"
+    url  = "https://flagger.app"
+}
 
-  provisioner "local-exec" {
-    working_dir = "../"
-    when = "destroy"
-    command = "kubectl delete namespace kube-logging --kubeconfig=./terraform/${local_file.kubeconfig.filename}"
-  }
-
-  depends_on = [azurerm_resource_group.k8s, local_file.kubeconfig]
+resource "helm_release" "flagger" {
+    name       = "flagger"
+    repository = "${data.helm_repository.flagger.metadata.0.name}"
+    chart      = "flagger/flagger"
+    namespace =  "linkerd"
+    set {
+      name  = "crd.create"
+      value = "false"
+    }
+    set {
+      name  = "meshProvider"
+      value = "linkerd"
+    }    
+    set {
+      name  = "metricsServer"
+      value = "http://linkerd-prometheus:9090"
+    }
 }

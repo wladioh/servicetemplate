@@ -133,7 +133,7 @@ nginx-ldapauth-proxy:
   # secrets:
   #   ldapBindPassword: PASSWORD
 elasticsearch-curator:
-  enabled: false
+  enabled: true
 
 elasticsearch-exporter:
   enabled: false

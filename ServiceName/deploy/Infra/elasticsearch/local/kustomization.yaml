@@ -1,4 +1,0 @@
-resources:
-- ../base
-- volume.yaml
-namePrefix: local-
