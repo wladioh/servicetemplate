@@ -1,12 +1,13 @@
 ﻿using System.Threading.Tasks;
 using Rebus.Bus;
 using Service.Infra.MessageBus;
+using Service.Infra.MessageBus.Rebus;
 
 namespace Service.Api.Handlers
 {
-    public class TestHandler: IMessageHandler<TestMessage>,
-        IMessageHandler<OtherMessage>,
-        IMessageHandler<OtherMessagePublish>
+    public class TestHandler: IRebusMessageHandler<TestMessage>,
+        IRebusMessageHandler<OtherMessage>,
+        IRebusMessageHandler<OtherMessagePublish>
     {
         private readonly IBus _bus;
 

@@ -8,7 +8,7 @@ namespace Service.Api.Integrations
     public interface IPokemonApi
     {
         [Get("/gender/{id}")]
-        Task<ApiResponse<Genders>> Get(string id);
+        Task<ApiResponse<Genders>> Get(int id);
     }
 
 

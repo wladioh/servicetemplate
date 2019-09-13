@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
@@ -39,21 +40,16 @@ namespace Service.Api.Tests
         public async Task SingleTest()
         {
             var id = 1;
-            var response = new ApiResponse<SomeoneApiValue>(new HttpResponseMessage(), new SomeoneApiValue
-            {
-                Id = id
-            });
+            var genders = new Genders { id = id };
+            var response = new ApiResponse<Genders>(new HttpResponseMessage(System.Net.HttpStatusCode.OK), genders);
             _api.Setup(it => it.Get(id))
                 .ReturnsAsync(response);
 
             var result = await _controller.Get(id);
 
             result.Should().BeOfType<OkObjectResult>();
-            var mockValue = result.As<OkObjectResult>().Value.As<SomeoneApiValue>();
-            mockValue.Should().BeEquivalentTo(new SomeoneApiValue
-            {
-                Id = id
-            });
+            var mockValue = result.As<OkObjectResult>().Value.As<Genders>();
+            mockValue.Should().BeEquivalentTo(genders);
             response.Dispose();
         }
     }

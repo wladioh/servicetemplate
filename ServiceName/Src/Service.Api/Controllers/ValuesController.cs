@@ -47,7 +47,7 @@ namespace Service.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var re = await _pokemon.Get(id.ToString());
+            var re = await _pokemon.Get(id);
             if (re.IsSuccessStatusCode)
                 return Ok(re.Content);
             return BadRequest(re.Error.Content);

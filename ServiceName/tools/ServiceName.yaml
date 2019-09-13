@@ -1,40 +1,100 @@
-apiVersion: apps/v1beta1
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: servicename-hpa
+  labels:
+    k8s-app: servicename           
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: servicename
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - resource:
+        name: cpu
+        targetAverageUtilization: 98
+      type: Resource
+---
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: servicename
+  name: servicename-deployment
+  labels:
+    k8s-app: servicename            
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: servicename
   template:
     metadata:
       labels:
         app: servicename
+        k8s-app: servicename
     spec:
       containers:
-      - name: servicename
+      - name: servicename-container
         image: servicename
         ports:
         - containerPort: 80
+          name: http
         resources:
           requests:
-            cpu: 250m
-          limits:
-            cpu: 500m
-      imagePullSecrets:
-      - name: $(SecretName)
+            cpu: "50m"
+            memory: "64Mi"
+          limits: 
+            cpu: "100m"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /version
+            port: http
+          timeoutSeconds: 5
+          initialDelaySeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /version
+            port: http
+          timeoutSeconds: 5
+          initialDelaySeconds: 20
 ---
-apiVersion: v1
-kind: Service
+kind: Service                   #+
+apiVersion: v1                  #+
+metadata:                       #+
+  name: servicename             #+
+  labels:
+    k8s-app: servicename
+spec:                           #+
+  selector:                     #+
+    app: servicename            #+
+  ports:                        #+
+  - protocol: TCP               #+
+    targetPort: http            #+
+    port: 80                    #+
+    name: http                  #+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
 metadata:
-  name: servicename-svc
-  annotations:
-    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  name: services-ingress
+  labels:
+    k8s-app: servicename
+  annotations:  
+    kubernetes.io/ingress.class: "nginx"    
+    # nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:80;
+      proxy_hide_header l5d-remote-ip;
+      proxy_hide_header l5d-server-id;
 spec:
-  type: LoadBalancer
-  loadBalancerIP: 10.240.0.11
-  ports:
-  - port: 80
-    targetPort: 80
-    protocol: TCP
-    name: http
-  selector:
-    app: servicename
+  rules:
+  - http:
+      paths:
+      - path: /      
+#      - path: /podinfo(/|$)(.*)
+        backend:
+          serviceName: servicename
+          servicePort: 80    

@@ -264,3 +264,4 @@ __pycache__/
 ServiceTeste/
 ServiceName/deploy/Infra/terraform/.terraform
 *.tefvars
+ServiceName/deploy/.terraform/modules/modules.json

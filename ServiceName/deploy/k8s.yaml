@@ -9,12 +9,12 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: servicename
-  minReplicas: 2
-  maxReplicas: 15
+  minReplicas: 1
+  maxReplicas: 3
   metrics:
     - resource:
         name: cpu
-        targetAverageUtilization: 100
+        targetAverageUtilization: 98
       type: Resource
 ---
 apiVersion: extensions/v1beta1
@@ -87,11 +87,19 @@ metadata:
   name: services-ingress
   labels:
     k8s-app: servicename
+  annotations:  
+    kubernetes.io/ingress.class: "nginx"    
+    # nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:8080;
+      proxy_hide_header l5d-remote-ip;
+      proxy_hide_header l5d-server-id;
 spec:
   rules:
   - http:
       paths:
-      - path: /
+      - path: /      
+#      - path: /podinfo(/|$)(.*)
         backend:
           serviceName: servicename-service
           servicePort: 81
