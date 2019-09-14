@@ -23,11 +23,15 @@ using System.Reflection;
 using App.Metrics.AspNetCore;
 using Microsoft.Extensions.DependencyModel;
 using Service.Infra.ConfigurationService;
+using OpenTracing;
+using OpenTracing.Propagation;
+using Moq;
+using Jaeger;
 
 namespace Service.Integration.Tests
 {
-   public class CustomWebApplicationFactory<TStartup>
-        : WebApplicationFactory<TStartup> where TStartup : class
+    public class CustomWebApplicationFactory<TStartup>
+         : WebApplicationFactory<TStartup> where TStartup : class
     {
         private static readonly Dictionary<string, string> Dict =
             new Dictionary<string, string>
@@ -73,13 +77,15 @@ namespace Service.Integration.Tests
                 }).ConfigureServices((build, collection) =>
                 {
                     collection.AddSingleton(InMemoryBus);
+                    collection.AddSingleton<ITracer>(new Tracer.Builder("IntegrationTest").Build());
                 })
                 .UseEnvironment("IntegrationTest");
         }
-       
+
         public void ConfigureRoutingMessages(Action<StandardConfigurer<Rebus.Routing.IRouter>> router)
         {
             _router = router;
         }
     }
+
 }

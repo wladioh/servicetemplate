@@ -114,7 +114,7 @@ namespace Service.Infra.MessageBus.Rebus
                 o.SetMaxParallelism(rebusConfig.MaxParallelism);
                 o.SetNumberOfWorkers(rebusConfig.NumberOfWorkers);
                 o.SimpleRetryStrategy(maxDeliveryAttempts: rebusConfig.Retry, errorQueueAddress: rebusConfig.ErrorQueue);
-                o.EnableOpenTracing();
+                o.EnableOpenTracing(serviceProvider);
             }
 
             void ConfigureTimeouts(StandardConfigurer<ITimeoutManager> t, IServiceProvider serviceProvider)
@@ -145,11 +145,11 @@ namespace Service.Infra.MessageBus.Rebus
 
     public static class RebusOptionsOpenTracingExtensions
     {
-        public static void EnableOpenTracing(this OptionsConfigurer configurer)
+        public static void EnableOpenTracing(this OptionsConfigurer configurer, IServiceProvider serviceProvider)
         {
             configurer.Decorate<IPipeline>(c =>
                    {
-                       var tracer = c.Get<ITracer>();
+                       var tracer = serviceProvider.GetService<ITracer>();
                        var outgoingStep = new OpenTracingOutgoingStep(tracer);
                        var incomingStep = new OpenTracingIncomingStep(tracer);
 
