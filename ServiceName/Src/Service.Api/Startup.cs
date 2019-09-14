@@ -16,7 +16,6 @@ using Service.Infra.Database.Mongo;
 using Service.Infra.MessageBus.Rebus;
 using Service.Infra.Network;
 using Service.Infra.Repositories;
-using StackExchange.Profiling;
 
 namespace Service.Api
 {
@@ -31,7 +30,7 @@ namespace Service.Api
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
-        {   
+        {
             services.AddDefaultLocalization();
             services.AddMvc()
                 .SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
@@ -42,10 +41,11 @@ namespace Service.Api
             services.AddDefaultHealthChecks();
             services.AddHttpContextAccessor();
             services.AddDefaultSwagger();
+            services.AddOpenTracing();
             services.AddCorrelationId();
             services.AddOptions();
             services.Configure<EndpointsOptions>(Configuration.GetSection(EndpointsOptions.Section));
-            services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<EndpointsOptions>>().CurrentValue);            
+            services.AddTransient(resolver => resolver.GetService<IOptionsMonitor<EndpointsOptions>>().CurrentValue);
             services.AddDistributedMemoryCache();
             services.AddResponseCaching();
             services.AddResponseCompression();
@@ -66,7 +66,6 @@ namespace Service.Api
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            app.UseMiniProfiler();
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -86,6 +85,7 @@ namespace Service.Api
             app.UseResponseCompression();
             app.UseMvc();
             app.UseRebus();
+            app.UseOpenTracingMiddleware();
         }
     }
 }

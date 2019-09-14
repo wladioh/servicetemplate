@@ -1,11 +1,21 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using OpenTracing;
+using OpenTracing.Propagation;
+using OpenTracing.Tag;
 using Rebus.Config;
+using Rebus.Messages;
 using Rebus.Persistence.InMem;
+using Rebus.Pipeline;
+using Rebus.Pipeline.Receive;
+using Rebus.Pipeline.Send;
 using Rebus.Retry.Simple;
 using Rebus.Routing;
 using Rebus.Sagas;
@@ -104,6 +114,7 @@ namespace Service.Infra.MessageBus.Rebus
                 o.SetMaxParallelism(rebusConfig.MaxParallelism);
                 o.SetNumberOfWorkers(rebusConfig.NumberOfWorkers);
                 o.SimpleRetryStrategy(maxDeliveryAttempts: rebusConfig.Retry, errorQueueAddress: rebusConfig.ErrorQueue);
+                o.EnableOpenTracing();
             }
 
             void ConfigureTimeouts(StandardConfigurer<ITimeoutManager> t, IServiceProvider serviceProvider)
@@ -129,6 +140,93 @@ namespace Service.Infra.MessageBus.Rebus
                    .Options(it => ConfigureOptions(it, provider))
                    .Timeouts(it => ConfigureTimeouts(it, provider))
                    .Routing(r => action?.Invoke(r));
+        }
+    }
+
+    public static class RebusOptionsOpenTracingExtensions
+    {
+        public static void EnableOpenTracing(this OptionsConfigurer configurer)
+        {
+            configurer.Decorate<IPipeline>(c =>
+                   {
+                       var tracer = c.Get<ITracer>();
+                       var outgoingStep = new OpenTracingOutgoingStep(tracer);
+                       var incomingStep = new OpenTracingIncomingStep(tracer);
+
+                       var pipeline = c.Get<IPipeline>();
+
+                       return new PipelineStepInjector(pipeline)
+                           .OnReceive(incomingStep, PipelineRelativePosition.After, typeof(DeserializeIncomingMessageStep))
+                           .OnSend(outgoingStep, PipelineRelativePosition.Before, typeof(SerializeOutgoingMessageStep));
+                   });
+        }
+    }
+
+    public class OpenTracingIncomingStep : IIncomingStep
+    {
+        private readonly ITracer _tracer;
+
+        public OpenTracingIncomingStep(ITracer tracer)
+        {
+            _tracer = tracer;
+        }
+        private static IDisposable StartServerSpan(ITracer tracer, Dictionary<string, string> headers, string operationName)
+        {
+            ISpanBuilder spanBuilder;
+            try
+            {
+                var parentSpanCtx = tracer.Extract(BuiltinFormats.HttpHeaders, new TextMapExtractAdapter(headers));
+
+                spanBuilder = tracer.BuildSpan(operationName);
+                if (parentSpanCtx != null)
+                {
+                    spanBuilder = spanBuilder.AsChildOf(parentSpanCtx);
+                }
+            }
+            catch (Exception)
+            {
+                spanBuilder = tracer.BuildSpan(operationName);
+            }
+
+            // TODO could add more tags like http.url
+            return spanBuilder.WithTag(Tags.SpanKind, Tags.SpanKindServer).StartActive(true);
+        }
+
+        public async Task Process(IncomingStepContext context, Func<Task> next)
+        {
+            var message = context.Load<Message>();
+            var headers = message.Headers.ToDictionary(k => k.Key, v => v.Value);
+
+            using (var scope = StartServerSpan(_tracer, headers, next.Method.Name))
+                await next();
+        }
+    }
+
+    public class OpenTracingOutgoingStep : IOutgoingStep
+    {
+        private readonly ITracer _tracer;
+
+        public OpenTracingOutgoingStep(ITracer tracer)
+        {
+            _tracer = tracer;
+        }
+        public async Task Process(OutgoingStepContext context, Func<Task> next)
+        {
+            var message = context.Load<Message>();
+            var headers = message.Headers;
+            var destinationAddressesList = context.Load<DestinationAddresses>().ToList();
+            using (_tracer.BuildSpan("Send Message").StartActive(finishSpanOnDispose: true))
+            {
+                var span = _tracer.ScopeManager.Active.Span
+                       .SetTag(Tags.SpanKind, Tags.SpanKindClient);
+                destinationAddressesList.ForEach(it => span.SetTag(Tags.MessageBusDestination, it));
+                var dictionary = new Dictionary<string, string>();
+                _tracer.Inject(span.Context, BuiltinFormats.TextMap, new TextMapInjectAdapter(dictionary));
+
+                foreach (var entry in dictionary)
+                    headers.Add(entry.Key, entry.Value);
+                await next();
+            }
         }
     }
 }

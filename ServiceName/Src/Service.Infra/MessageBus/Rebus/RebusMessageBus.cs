@@ -14,16 +14,19 @@ namespace Service.Infra.MessageBus.Rebus
         }
         public async Task PublishAsync(IntegrationMessage message, Dictionary<string, string> optionalHeaders = null)
         {
+            //todo: implements opentracing
             await _bus.Publish(message, optionalHeaders);
         }
 
         public async Task ReplyAsync(IntegrationMessage message, Dictionary<string, string> optionalHeaders = null)
         {
+            //todo: implements opentracing
             await _bus.Reply(message, optionalHeaders);
         }
 
         public async Task SendAsync(IntegrationMessage message, Dictionary<string, string> optionalHeaders = null)
-        {
+        { 
+            //todo: implements opentracing
             await _bus.Send(message, optionalHeaders);
         }
 
