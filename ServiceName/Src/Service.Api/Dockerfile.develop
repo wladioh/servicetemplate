@@ -1,0 +1,20 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:2.2
+ARG BUILD_CONFIGURATION=Debug
+ENV ASPNETCORE_ENVIRONMENT=Development
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
+EXPOSE 80
+
+WORKDIR /src
+COPY ["Src/Service.Api/Service.Api.csproj", "Src/Service.Api/"]
+COPY ["Src/Service.Domain/Service.Domain.csproj", "Src/Service.Domain/"]
+COPY ["Src/Service.Infra/Service.Infra.csproj", "Src/Service.Infra/"]
+COPY ["Src/ServiceName.Sdk/ServiceName.Sdk.csproj", "Src/ServiceName.Sdk/"]
+
+RUN dotnet restore "Src/Service.Api/Service.Api.csproj"
+COPY . .
+WORKDIR "/src/Src/Service.Api"
+RUN dotnet build --no-restore "Service.Api.csproj" -c $BUILD_CONFIGURATION
+
+RUN echo "exec dotnet run --no-build --no-launch-profile -c $BUILD_CONFIGURATION --" > /entrypoint.sh
+
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]

@@ -1,4 +1,3 @@
----
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
@@ -37,10 +36,12 @@ spec:
     spec:
       containers:
       - name: servicename-container
-        image: servicename
+        image: gitea/gitea:1.4
         ports:
-        - containerPort: 80
+        - containerPort: 3000
           name: http
+        - containerPort: 22
+          name: ssh
         resources:
           requests:
             cpu: "50m"
@@ -64,7 +65,7 @@ spec:
 kind: Service                   #+
 apiVersion: v1                  #+
 metadata:                       #+
-  name: servicename             #+
+  name: servicename-service     #+               #+
   labels:
     k8s-app: servicename
 spec:                           #+
@@ -73,8 +74,12 @@ spec:                           #+
   ports:                        #+
   - protocol: TCP               #+
     targetPort: http            #+
-    port: 80                    #+
+    port: 81                   #+
     name: http                  #+
+  - protocol: TCP               #+
+    targetPort: ssh             #+
+    port: 22                    #+
+    name: ssh                   #+
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
@@ -86,7 +91,7 @@ metadata:
     kubernetes.io/ingress.class: "nginx"    
     # nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/configuration-snippet: |
-      proxy_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:80;
+      proxy_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:8080;
       proxy_hide_header l5d-remote-ip;
       proxy_hide_header l5d-server-id;
 spec:
@@ -96,5 +101,5 @@ spec:
       - path: /      
 #      - path: /podinfo(/|$)(.*)
         backend:
-          serviceName: servicename
-          servicePort: 80    
+          serviceName: servicename-service
+          servicePort: 81

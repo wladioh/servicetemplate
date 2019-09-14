@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ using Moq;
 using Rebus.Bus;
 using Refit;
 using Service.Api.Controllers;
+using Service.Api.Integrations;
 using Service.Api.Resources;
 using Service.Domain;
 using Xunit;
@@ -18,7 +20,7 @@ namespace Service.Api.Tests
     {
         private readonly MockRepository _mockRepository;
         private readonly Mock<IStringLocalizer<SharedResource>> _i18N;
-        private readonly Mock<ISomeoneApi> _api;
+        private readonly Mock<IPokemonApi> _api;
         private readonly Mock<IBus> _bus;
         private readonly Mock<IValueRepository> _repository;
         private readonly Mock<IDistributedCache> _cache;
@@ -28,7 +30,7 @@ namespace Service.Api.Tests
         {
             _mockRepository = new MockRepository(MockBehavior.Default);
             _i18N = _mockRepository.Create<IStringLocalizer<SharedResource>>();
-            _api = _mockRepository.Create<ISomeoneApi>();
+            _api = _mockRepository.Create<IPokemonApi>();
             _bus = _mockRepository.Create<IBus>();
             _repository = _mockRepository.Create<IValueRepository>();
             _cache = _mockRepository.Create<IDistributedCache>();
@@ -38,21 +40,16 @@ namespace Service.Api.Tests
         public async Task SingleTest()
         {
             var id = 1;
-            var response = new ApiResponse<SomeoneApiValue>(new HttpResponseMessage(), new SomeoneApiValue
-            {
-                Id = id
-            });
+            var genders = new Genders { id = id };
+            var response = new ApiResponse<Genders>(new HttpResponseMessage(System.Net.HttpStatusCode.OK), genders);
             _api.Setup(it => it.Get(id))
                 .ReturnsAsync(response);
 
             var result = await _controller.Get(id);
 
             result.Should().BeOfType<OkObjectResult>();
-            var mockValue = result.As<OkObjectResult>().Value.As<SomeoneApiValue>();
-            mockValue.Should().BeEquivalentTo(new SomeoneApiValue
-            {
-                Id = id
-            });
+            var mockValue = result.As<OkObjectResult>().Value.As<Genders>();
+            mockValue.Should().BeEquivalentTo(genders);
             response.Dispose();
         }
     }

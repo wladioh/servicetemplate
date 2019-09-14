@@ -10,7 +10,32 @@ https://localhost/mini-profiler-resources/results
 ```shell
 docker-compose up
 ```
+## Kubernets
+- Dashboard
+    https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml
+    https://github.com/kubernetes/dashboard/wiki/Creating-sample-user
+    kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}')
+https://kubernetes.github.io/ingress-nginx/deploy/#provider-specific-steps
+- install nginx ingress
+    helm upgrade -i nginx-ingress stable/nginx-ingress --namespace ingress-nginx 
+- Install K8s Ingress
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/mandatory.yaml
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/cloud-generic.yaml
+- Consul  https://learn.hashicorp.com/consul/getting-started-k8s/helm-deploy
+https://www.consul.io/docs/platform/k8s/helm.html
+https://learn.hashicorp.com/consul/day-1-operations/kubernetes-deployment-guide
+    helm install ./ -f ../Tef/ServiceTemplate/ServiceName/deploy/Infra/helm-consul-values.yaml --name consul
+    kubectl port-forward service/consul-consul-server 5000:8500
 
+values.ya
+- Create dev Namespace
+    kubectl create namespace dev
+- Grafana Prometheus
+    https://medium.com/@chris_linguine/how-to-monitor-your-kubernetes-cluster-with-prometheus-and-grafana-2d5704187fc8
+    Dashboards 
+    10000
+    8685
 ## Coverage
 - The bootstrapper is used to download Cake and the tools required by the build script. This is (kind of) an optional step, but recommended since it removes the need to store binaries in the source code repository. 
 - Sometimes PowerShell prevents you from running build.ps1. Here are some common scenarios and what to do about it.

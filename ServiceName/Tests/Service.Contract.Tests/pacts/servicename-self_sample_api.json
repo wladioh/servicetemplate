@@ -1,0 +1,35 @@
+{
+  "consumer": {
+    "name": "ServiceName"
+  },
+  "provider": {
+    "name": "Self sample API"
+  },
+  "interactions": [
+    {
+      "description": "A GET request to /api/values resources",
+      "providerState": "self api sample",
+      "request": {
+        "method": "get",
+        "path": "/api/values"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": [
+          {
+            "id": "38dcc45c-2dc7-4f57-9755-a756503c77fc",
+            "name": "Same name"
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "pactSpecification": {
+      "version": "2.0.0"
+    }
+  }
+}

@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Mongo2Go;
@@ -9,15 +13,20 @@ using MongoDB.Driver;
 using Rebus.Bus;
 using Rebus.Config;
 using Rebus.Transport.InMem;
+using Service.Api;
 using Service.Integration.Tests.RebusHelpers;
 using WireMock.Net.StandAlone;
 using WireMock.RequestBuilders;
 using WireMock.Server;
 using WireMock.Settings;
+using System.Reflection;
+using App.Metrics.AspNetCore;
+using Microsoft.Extensions.DependencyModel;
+using Service.Infra.ConfigurationService;
 
 namespace Service.Integration.Tests
 {
-    public class CustomWebApplicationFactory<TStartup>
+   public class CustomWebApplicationFactory<TStartup>
         : WebApplicationFactory<TStartup> where TStartup : class
     {
         private static readonly Dictionary<string, string> Dict =
@@ -56,6 +65,7 @@ namespace Service.Integration.Tests
         {
             builder
                 .UseSetting("ServiceConfiguration:ConnectionString", "http://localhost:5001")
+                .UseUrls("https://localhost:5090;http://localhost:5091;https://hostname:5092")
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     Dict.Add("Database:ConnectionString", Runner.ConnectionString);
@@ -66,7 +76,7 @@ namespace Service.Integration.Tests
                 })
                 .UseEnvironment("IntegrationTest");
         }
-
+       
         public void ConfigureRoutingMessages(Action<StandardConfigurer<Rebus.Routing.IRouter>> router)
         {
             _router = router;

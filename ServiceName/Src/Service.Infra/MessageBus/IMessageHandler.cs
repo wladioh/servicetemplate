@@ -1,13 +1,10 @@
-﻿using Rebus.Handlers;
+﻿using System.Threading.Tasks;
 
 namespace Service.Infra.MessageBus
 {
-    public interface IMessageHandler<in TIntegrationEvent> :
-        IMessageHandler, IHandleMessages<TIntegrationEvent>
+    public interface IMessageHandler<in TIntegrationEvent> 
         where TIntegrationEvent : IntegrationMessage
     {
-    }
-    public interface IMessageHandler
-    {
+        Task Handle(TIntegrationEvent message);
     }
 }

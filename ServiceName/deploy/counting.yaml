@@ -1,0 +1,92 @@
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: counting-hpa
+  labels:
+    k8s-app: counting           
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: counting
+  minReplicas: 2
+  maxReplicas: 15
+  metrics:
+    - resource:
+        name: cpu
+        targetAverageUtilization: 100
+      type: Resource
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: counting-deployment
+  labels:
+    k8s-app: counting
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: counting
+  template:
+    metadata:
+      labels:
+        app: counting
+        k8s-app: counting
+    spec:
+      containers:
+      - name: counting-container
+        image: hashicorp/counting-service:0.0.2
+        ports:
+        - containerPort: 9001
+          name: http
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits: 
+            cpu: "100m"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          timeoutSeconds: 1
+          initialDelaySeconds: 30     
+---
+kind: Service                   #+
+apiVersion: v1                  #+
+metadata:                       #+
+  name: counting-service     #+               #+
+  labels:
+    k8s-app: counting
+spec:                           #+
+  selector:                     #+
+    app: counting            #+
+  ports:                        #+
+  - protocol: TCP               #+
+    targetPort: http            #+
+    port: 80                    #+
+    name: http                  #+
+---
+# apiVersion: extensions/v1beta1
+# kind: Ingress
+# metadata:
+#   name: services-ingress
+#   labels:
+#     k8s-app: counting
+#   annotations:
+#     kubernetes.io/ingress.class: "nginx"
+#     nginx.ingress.kubernetes.io/rewrite-target: /$2
+#     nginx.ingress.kubernetes.io/configuration-snippet: |
+#       proxy_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:80;
+#       proxy_hide_header l5d-remote-ip;
+#       proxy_hide_header l5d-server-id;
+# spec:
+#   rules:
+#   - http:
+#       paths:
+#       - path: /counting(/|$)(.*)
+#         backend:
+#           serviceName: counting-service
+#           servicePort: 80

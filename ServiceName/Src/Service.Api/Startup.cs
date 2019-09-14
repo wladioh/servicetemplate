@@ -8,6 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Rebus.Routing.TypeBased;
 using Service.Api.Extensions;
+using Service.Api.Handlers;
+using Service.Api.Integrations;
+using Service.Api.Options;
 using Service.Infra.ConfigurationService;
 using Service.Infra.Database.Mongo;
 using Service.Infra.MessageBus.Rebus;
@@ -29,7 +32,6 @@ namespace Service.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {   
-            services.AddMiniProfiler();
             services.AddDefaultLocalization();
             services.AddMvc()
                 .SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
@@ -49,7 +51,7 @@ namespace Service.Api
             services.AddResponseCompression();
             services.AddRefitWithPolly<EndpointsOptions>(Configuration, config =>
                 {
-                    config.Configure<ISomeoneApi>(it => it.Mock);
+                    config.Configure<IPokemonApi>(it => it.Mock);
                 });
             services.AddMongo();
             services.AddMongoRepositories();

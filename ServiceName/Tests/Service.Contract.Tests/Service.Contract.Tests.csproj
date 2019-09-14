@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="pacts\**" />
+    <EmbeddedResource Remove="pacts\**" />
+    <None Remove="pacts\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="5.9.0" />
+    <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.2.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="2.2.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
+    <PackageReference Include="Mongo2Go" Version="2.2.12" />
+    <PackageReference Include="Moq" Version="4.13.0" />
+    <PackageReference Include="PactNet" Version="2.4.7" />
+    <PackageReference Include="PactNet.Windows" Version="2.4.7" />
+    <PackageReference Include="WireMock.Net" Version="1.0.30" />
+    <PackageReference Include="WireMock.Net.StandAlone" Version="1.0.30" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Src\Service.Api\Service.Api.csproj" />
+    <ProjectReference Include="..\Service.Integration.Tests\Service.Integration.Tests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="pacts\" />
+  </ItemGroup>
+<ItemGroup>
+    <None Remove="xunit.runner.*.dll" />
+</ItemGroup>
+</Project>

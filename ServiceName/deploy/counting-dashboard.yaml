@@ -1,0 +1,163 @@
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: dashboard
+  labels:
+    k8s-app: dashboard           
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: dashboard
+  minReplicas: 2
+  maxReplicas: 15
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: 99
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: dashboard
+  labels:
+    k8s-app: dashboard  
+    app: dashboard          
+spec:
+  minReadySeconds: 5
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 60
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+    type: RollingUpdate
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+      labels:
+        app: dashboard
+        k8s-app: dashboard
+    spec:
+      containers:
+      - name: dashboard
+        image: hashicorp/dashboard-service:0.0.3
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: COUNTING_SERVICE_URL
+          value: http://counting-service
+        ports:
+        - containerPort: 9002
+          name: http
+        - containerPort: 22
+          name: ssh
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits: 
+            cpu: "100m"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          timeoutSeconds: 5
+          initialDelaySeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          timeoutSeconds: 5
+          initialDelaySeconds: 5
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+---
+kind: Service                   #+
+apiVersion: v1                  #+
+metadata:                       #+
+  name: dashboard     #+               #+
+  labels:
+    k8s-app: dashboard
+    app: dashboard
+spec:                           #+
+  selector:                     #+
+    app: dashboard            #+
+  ports:                        #+
+  - protocol: TCP               #+
+    targetPort: http            #+
+    port: 9002                  #+
+    name: http2                  #+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: dashboard
+  labels:
+    app: dashboard
+    k8s-app: dashboard
+  annotations:  
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:9002;
+      proxy_hide_header l5d-remote-ip;
+      proxy_hide_header l5d-server-id;
+spec: 
+  # tls:
+  #   - hosts:
+  #     - "*.wladidashboard.com.br"
+  #     secretName: ingress-tls
+  rules:
+  - http:
+      paths:
+      - backend:
+          serviceName: dashboard
+          servicePort: 9002
+        path: /
+---
+# apiVersion: flagger.app/v1alpha3
+# kind: Canary
+# metadata:
+#   name: dashboard
+# spec:
+#   ingressRef:
+#     apiVersion: extensions/v1beta1
+#     kind: Ingress
+#     name: dashboard
+#   targetRef:
+#     apiVersion: apps/v1
+#     kind: Deployment
+#     name: dashboard    
+#   autoscalerRef:
+#     apiVersion: autoscaling/v2beta1
+#     kind: HorizontalPodAutoscaler
+#     name: dashboard
+#   service:
+#     port: 9002
+#   canaryAnalysis:
+#     interval: 10s
+#     threshold: 5
+#     stepWeight: 10
+#     metrics:
+#     - name: request-success-rate
+#       threshold: 99
+#       interval: 1m
+#     match:
+#       # curl -H 'X-Canary: always' http://app.example.com
+#       - headers:
+#           x-canary:
+#             exact: "always"
+#       # curl -b 'canary=always' http://app.example.com
+#       - headers:
+#           cookie:
+#             exact: "canary"
