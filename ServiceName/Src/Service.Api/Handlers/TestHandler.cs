@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using OpenTracing;
 using Rebus.Bus;
 using Service.Infra.MessageBus;
 using Service.Infra.MessageBus.Rebus;
@@ -10,14 +11,17 @@ namespace Service.Api.Handlers
         IRebusMessageHandler<OtherMessagePublish>
     {
         private readonly IBus _bus;
+        private readonly ITracer _tracer;
 
-        public TestHandler(IBus bus)
+        public TestHandler(IBus bus, ITracer  tracer)
         {
             _bus = bus;
+            _tracer = tracer;
         }
         public Task Handle(TestMessage message)
         {
-            return _bus.Reply(message);
+            //_tracer.ActiveSpan.Finish();
+            return Task.CompletedTask; // _bus.Reply(message);
         }
 
         public Task Handle(OtherMessage message)

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,6 +14,7 @@ using Polly.Extensions.Http;
 using Polly.Fallback;
 using Polly.Registry;
 using Polly.Retry;
+using Polly.Timeout;
 using Service.Infra.Network.Options;
 
 namespace Service.Infra.Network
@@ -66,7 +68,13 @@ namespace Service.Infra.Network
         {
             var bulkhead = Policy
                 .BulkheadAsync<HttpResponseMessage>(_options.Bulkhead.MaxParallelization,
-                    _options.Bulkhead.MaxQueuingActions);
+                    _options.Bulkhead.MaxQueuingActions, OnBulkheadRejected);
+            Task OnBulkheadRejected(Context context)
+            {
+                _logger.LogWarning("[Bulkhead Policy][Rejected] key: {operationKey} - id: {id}",
+                    context.OperationKey, context.CorrelationId);
+                return Task.CompletedTask;
+            }
             return bulkhead;
         }
 
@@ -75,9 +83,9 @@ namespace Service.Infra.Network
             var cache = Policy.CacheAsync(_cacheProvider,
                 new ResultTtl<HttpResponseMessage>(CacheOnly200OkFilter),
                 context => context.OperationKey,
-                (context, s) => { },
+                OnCacheGet,
                 OnCacheMiss,
-                (context, s) => { },
+                OnCachePut,
                 OnGetError,
                 OnPutError);
             return cache;
@@ -87,6 +95,16 @@ namespace Service.Infra.Network
                     result.StatusCode == HttpStatusCode.OK ? TimeSpan.FromMinutes(_options.Cache.TimeSpan) : TimeSpan.Zero,
                     true
                 );
+            }
+            void OnCachePut(Context context, string key)
+            {
+                _logger.LogInformation("[Cache Policy][Put] key: {operationKey} - id: {id} - cacheKey: {key}",
+                    context.OperationKey, context.CorrelationId, key);
+            }
+            void OnCacheGet(Context context, string key)
+            {
+                _logger.LogInformation("[Cache Policy][Get] key: {operationKey} - id: {id} - cacheKey: {key}",
+                    context.OperationKey, context.CorrelationId, key);
             }
             void OnCacheMiss(Context context, string key)
             {
@@ -107,9 +125,9 @@ namespace Service.Infra.Network
 
         private AsyncFallbackPolicy<HttpResponseMessage> FallbackPolicy()
         {
-            Task OnFallbackAsync(DelegateResult<HttpResponseMessage> delegateResylt, Context context)
+            Task OnFallbackAsync(DelegateResult<HttpResponseMessage> delegateResult, Context context)
             {
-                _logger.LogInformation("[Fallback Policy] key: {operationKey} - id: {id}",
+                _logger.LogWarning(delegateResult.Exception, "[Fallback Policy] key: {operationKey} - id: {id}",
                     context.OperationKey,
                     context.CorrelationId);
                 return Task.CompletedTask;
@@ -121,9 +139,12 @@ namespace Service.Infra.Network
                 Content = new StringContent("Please try again later")
             };
 
-            var fallback = HttpPolicyExtensions.HandleTransientHttpError()
-                .FallbackAsync(responseMessage, OnFallbackAsync);
-            return fallback;
+            return HttpPolicyExtensions.HandleTransientHttpError()
+                .Or<TimeoutRejectedException>()
+               // Policy<HttpResponseMessage>
+               ////.Handle<TimeoutRejectedException>()
+               //.Handle<Exception>()
+               .FallbackAsync(responseMessage, OnFallbackAsync);
         }
 
         private AsyncCircuitBreakerPolicy<HttpResponseMessage> CircuitBreakerPolicy()
@@ -138,7 +159,7 @@ namespace Service.Infra.Network
             return circuitBreaker;
             void OnBreak(DelegateResult<HttpResponseMessage> delegateResult, TimeSpan span, Context context)
             {
-                _logger.LogWarning("[CircuitBreak Policy][Close] key: {operationKey} - id: {id}",
+                _logger.LogWarning(delegateResult.Exception, "[CircuitBreak Policy][Close] key: {operationKey} - id: {id}",
                     context.OperationKey, context.CorrelationId);
             }
             void OnOpen(Context context)
@@ -150,27 +171,32 @@ namespace Service.Infra.Network
 
         private IAsyncPolicy<HttpResponseMessage> TimeoutPolicy()
         {
-            Task CompletedTask(Context context, TimeSpan span, Task task)
+            Task OnCompletedTask(Context context, TimeSpan span, Task task)
             {
-                _logger.LogInformation("[Timeout Policy] key: {operationKey} - id: {id} - timeout: {totalMilliseconds}",
+                _logger.LogWarning("[Timeout Policy] key: {operationKey} - id: {id} - timeout: {totalMilliseconds}",
                     context.OperationKey, context.CorrelationId, span.TotalMilliseconds);
                 return Task.CompletedTask;
             }
 
             var timeout = TimeSpan.FromMilliseconds(_options.Timeout);
             var timeoutPolicy = Policy
-                .TimeoutAsync(timeout, CompletedTask)
+                .TimeoutAsync(timeout, OnCompletedTask)
                 .AsAsyncPolicy<HttpResponseMessage>();
             return timeoutPolicy;
         }
 
         private AsyncRetryPolicy<HttpResponseMessage> BuildRetryPolicy()
         {
-            Task CompletedTask(DelegateResult<HttpResponseMessage> outcome, TimeSpan time, int retryNumber, Context context)
+            async Task CompletedTask(DelegateResult<HttpResponseMessage> outcome, TimeSpan time, int retryNumber, Context context)
             {
-                _logger.LogInformation("[Retry Policy] key: {operationKey} - id: {id} - retries: {retryNumber}",
-                    context.OperationKey, context.CorrelationId, retryNumber);
-                return Task.CompletedTask;
+                var ex = outcome.Exception;
+                if (outcome.Exception is null)
+                {
+                    var response = await outcome.Result.Content.ReadAsStringAsync();
+                    ex = new HttpRequestException(response);
+                }
+                _logger.LogWarning(ex, "[Retry Policy] key: {operationKey} - id: {id} - retries: {retryNumber} - HTTP Response: {result}",
+                    context.OperationKey, context.CorrelationId, retryNumber, outcome.Result.StatusCode);
             }
 
             var sleepDurations = GenerateJitter(_options.Retry.MaxRetries, TimeSpan.FromMilliseconds(20),

@@ -52,10 +52,10 @@ namespace Service.Contract.Tests.Consumer
                 });
 
             //NOTE: WillRespondWith call must come last as it will register the interaction
-            var pokeApi = RestService.For<ISelfApi>(_mockProviderServiceBaseUri);
+            var selfApi = RestService.For<ISelfApi>(_mockProviderServiceBaseUri);
 
             //Act
-            await pokeApi.Get();
+            await selfApi.Get();
 
             //Assert
             _mockProviderService.VerifyInteractions(); //NOTE: Verifies that interactions registered on the mock provider are called at least once

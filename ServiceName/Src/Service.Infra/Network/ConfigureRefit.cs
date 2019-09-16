@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Refit;
+using Service.Infra.Network.Options;
 
 namespace Service.Infra.Network
 {
@@ -35,12 +37,21 @@ namespace Service.Infra.Network
                 .ConfigureHttpClient((provider, client) =>
                 {
                     var configuration = provider.GetService<TConfiguration>();
+                    var pollyOptions = provider.GetService<PollyOptions>();
                     var url = func?.Invoke(configuration);
                     client.BaseAddress = new Uri(url);
-                    client.Timeout = TimeSpan.FromMilliseconds(3000);
+                 //   client.Timeout = TimeSpan.FromMilliseconds(pollyOptions.Timeout *2);
                     client.DefaultRequestHeaders.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
                 })
-                .SetHandlerLifetime(TimeSpan.FromMinutes(5))  //Set lifetime to five minutes
+                .SetHandlerLifetime(TimeSpan.FromMinutes(5))  //Set lifetime to five minutes     
+                //.AddPolicyHandlerFromRegistry(DefaultPolicy.PolicyName) //not used because of the "Opentrancing" implementation in MessageHanlder that cause an error related with Span Injection
+                .ConfigureHttpMessageHandlerBuilder(c =>
+                {
+                    c.PrimaryHandler = new HttpClientHandler()
+                    {
+                        AutomaticDecompression = System.Net.DecompressionMethods.GZip                        
+                    };
+                })
                 .AddHttpMessageHandler<MessageHandler>();
             return this;
         }

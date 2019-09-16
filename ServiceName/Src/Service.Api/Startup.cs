@@ -15,6 +15,7 @@ using Service.Infra.ConfigurationService;
 using Service.Infra.Database.Mongo;
 using Service.Infra.MessageBus.Rebus;
 using Service.Infra.Network;
+using Service.Infra.OpenTracing;
 using Service.Infra.Repositories;
 
 namespace Service.Api
@@ -38,10 +39,10 @@ namespace Service.Api
                 .AddMetrics()
                 .AddFluentValidation(a => a.RegisterValidatorsFromAssemblyContaining<Startup>());
             services.AddDefaultCors();
+            services.AddOpenTracingJaeger();
             services.AddDefaultHealthChecks();
             services.AddHttpContextAccessor();
             services.AddDefaultSwagger();
-            services.AddOpenTracing();
             services.AddCorrelationId();
             services.AddOptions();
             services.Configure<EndpointsOptions>(Configuration.GetSection(EndpointsOptions.Section));
@@ -59,6 +60,7 @@ namespace Service.Api
             {
                 configurer.TypeBased()
                     .Map<OtherMessage>("OtherService")
+                    .Map<TestMessage>("ServiceName")
                     .MapFallback("ServiceNameErros");
             });
         }
@@ -85,7 +87,6 @@ namespace Service.Api
             app.UseResponseCompression();
             app.UseMvc();
             app.UseRebus();
-            app.UseOpenTracingMiddleware();
         }
     }
 }

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Localization;
 using Polenter.Serialization;
 using Rebus.Bus;
+using Service.Api.Handlers;
 using Service.Api.Integrations;
 using Service.Api.Resources;
 using Service.Domain;
@@ -47,7 +48,8 @@ namespace Service.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var re = await _pokemon.Get(id);
+            await _bus.Send(new TestMessage { Name = "asdasd" });
+            var re = await _pokemon.Get(id.ToString());
             if (re.IsSuccessStatusCode)
                 return Ok(re.Content);
             return BadRequest(re.Error.Content);

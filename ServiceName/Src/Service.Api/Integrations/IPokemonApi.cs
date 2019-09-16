@@ -8,7 +8,8 @@ namespace Service.Api.Integrations
     public interface IPokemonApi
     {
         [Get("/gender/{id}")]
-        Task<ApiResponse<Genders>> Get(int id);
+        [Headers("Accept: application/json", "Accept-Encoding: gzip,deflate")]
+        Task<ApiResponse<Genders>> Get(string id);
     }
 
 
