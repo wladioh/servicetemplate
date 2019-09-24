@@ -83,7 +83,6 @@ namespace Service.Contract.Tests
                 })
                 .UseEnvironment("IntegrationTest")
                 .ConfigureMetrics()
-                .ConfigureConsul()
                 .UseMetrics()
                 .UseStartup<Startup>();
             SetContentRoot<Startup>(x);

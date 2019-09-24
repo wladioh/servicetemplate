@@ -20,7 +20,7 @@ namespace Service.Api.Extensions
                         builder
                             .AllowAnyHeader()
                             .AllowAnyMethod()
-                            .AllowAnyOrigin()
+                            //.AllowAnyOrigin()
                             .AllowCredentials().Build();
                     });
             });

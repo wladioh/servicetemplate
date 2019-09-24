@@ -4,6 +4,7 @@ using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
@@ -28,17 +29,21 @@ namespace Service.Api.Extensions
         {
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info { Title = "PosState Service", Version = "v1" });
-                c.AddSecurityDefinition("Bearer", new ApiKeyScheme
+                c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "PosState Service", Version = "v1" });
+                c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
                 {
-                    In = "header",
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
                     Description = "Please insert JWT with Bearer into field",
                     Name = "Authorization",
-                    Type = "apiKey"
+                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey
                 });
-                c.AddSecurityRequirement(new Dictionary<string, IEnumerable<string>>
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
-                    { "Bearer", new string[] { } }
+                    {
+                        new OpenApiSecurityScheme{
+                            Name = "Bearer"
+                        }, new List<string>()
+                    }
                 });
                 c.DocumentFilter<SecurityRequirementsDocumentFilter>();
                 c.OperationFilter<AuthResponsesOperationFilter>();
@@ -49,44 +54,51 @@ namespace Service.Api.Extensions
 
         public class SecurityRequirementsDocumentFilter : IDocumentFilter
         {
-            public void Apply(SwaggerDocument document, DocumentFilterContext context)
+
+            public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
             {
-                document.Security = new List<IDictionary<string, IEnumerable<string>>>
+                swaggerDoc.SecurityRequirements.Add(new OpenApiSecurityRequirement
                 {
-                    new Dictionary<string, IEnumerable<string>>
                     {
-                        { "Bearer", new string[]{ } },
-                        { "Basic", new string[]{ } },
-                    }
-                };
+                        new OpenApiSecurityScheme
+                        {
+                            Name = "Bearer"
+                        }, new List<string>() }
+                });
+
+                //new Dictionary<string, IList<string>>
+                //    {
+                //        { , new List<string>() },
+                //        { "Basic", new List<string>() }
+                //    };
             }
         }
 
         public class AuthResponsesOperationFilter : IOperationFilter
         {
-            public void Apply(Operation operation, OperationFilterContext context)
+
+            public void Apply(OpenApiOperation operation, OperationFilterContext context)
             {
                 var authAttributes = context.MethodInfo.DeclaringType.GetCustomAttributes(true)
-                    .Union(context.MethodInfo.GetCustomAttributes(true))
-                    .OfType<AuthorizeAttribute>();
+                            .Union(context.MethodInfo.GetCustomAttributes(true))
+                            .OfType<AuthorizeAttribute>();
 
                 if (authAttributes.Any())
-                    operation.Responses.Add(HttpStatusCode.Unauthorized.ToString(), new Response { Description = "Unauthorized" });
+                    operation.Responses.Add(HttpStatusCode.Unauthorized.ToString(), new OpenApiResponse { Description = "Unauthorized" });
             }
         }
 
         public class CultureFilter : IOperationFilter
         {
-            public void Apply(Operation operation, OperationFilterContext context)
+            public void Apply(OpenApiOperation operation, OperationFilterContext context)
             {
                 if (operation.Parameters == null)
-                    operation.Parameters = new List<IParameter>();
+                    operation.Parameters = new List<OpenApiParameter>();
 
-                operation.Parameters.Add(new NonBodyParameter
+                operation.Parameters.Add(new OpenApiParameter
                 {
                     Name = "Accept-Language",
-                    In = "header",
-                    Type = "string",
+                    In = ParameterLocation.Header,
                     Required = false
                 });
             }

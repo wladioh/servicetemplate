@@ -36,10 +36,11 @@ namespace Service.Api.Extensions
                         factory.Create(typeof(SharedResource));
                 }).AddJsonOptions(opt =>
                 {
-                    opt.SerializerSettings.ContractResolver = new DefaultContractResolver
-                    {
-                        NamingStrategy = new CamelCaseNamingStrategy()
-                    };
+                    //opt.JsonSerializerOptions.PropertyNamingPolicy =  new Camel(); 
+                    //SerializerSettings.ContractResolver = new DefaultContractResolver
+                    //{
+                    //    NamingStrategy = new CamelCaseNamingStrategy()
+                    //};
                 });
         }
 

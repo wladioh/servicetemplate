@@ -42,7 +42,7 @@ namespace Service.Api.Tests
             var id = 1;
             var genders = new Genders { id = id };
             var response = new ApiResponse<Genders>(new HttpResponseMessage(System.Net.HttpStatusCode.OK), genders);
-            _api.Setup(it => it.Get(id))
+            _api.Setup(it => it.Get(id.ToString()))
                 .ReturnsAsync(response);
 
             var result = await _controller.Get(id);

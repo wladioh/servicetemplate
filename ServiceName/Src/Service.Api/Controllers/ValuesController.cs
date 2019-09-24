@@ -38,6 +38,7 @@ namespace Service.Api.Controllers
         // GET api/values
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<Value>), (int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
         public async Task<IActionResult> Get()
         {
             var values = await _repository.GetAllAsync().ConfigureAwait(false);

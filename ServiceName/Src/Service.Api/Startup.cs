@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Rebus.Routing.TypeBased;
 using Service.Api.Extensions;
@@ -34,10 +35,10 @@ namespace Service.Api
         {
             services.AddDefaultLocalization();
             services.AddMvc()
-                .SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
                 .SetDefaultLocalizationAndJsonSettings()
-                .AddMetrics()
-                .AddFluentValidation(a => a.RegisterValidatorsFromAssemblyContaining<Startup>());
+                //.AddMetrics()
+               .AddFluentValidation(a => a.RegisterValidatorsFromAssemblyContaining<Startup>());
             services.AddDefaultCors();
             services.AddOpenTracingJaeger();
             services.AddDefaultHealthChecks();
@@ -56,6 +57,7 @@ namespace Service.Api
                 });
             services.AddMongo();
             services.AddMongoRepositories();
+            services.AddControllers();
             services.AddRebus<Startup>(Configuration, configurer =>
             {
                 configurer.TypeBased()
@@ -66,7 +68,7 @@ namespace Service.Api
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
@@ -85,7 +87,13 @@ namespace Service.Api
             app.UseConsul();
             app.UseResponseCaching();
             app.UseResponseCompression();
-            app.UseMvc();
+            app.UseRouting();
+            app.UseAuthorization();
+            app.UseAuthentication();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
             app.UseRebus();
         }
     }

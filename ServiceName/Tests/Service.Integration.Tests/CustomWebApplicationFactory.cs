@@ -27,6 +27,7 @@ using OpenTracing;
 using OpenTracing.Propagation;
 using Moq;
 using Jaeger;
+using Microsoft.Extensions.Hosting;
 
 namespace Service.Integration.Tests
 {
@@ -65,6 +66,19 @@ namespace Service.Integration.Tests
                     .UsingGet())
                 .RespondWith(WireMock.ResponseBuilders.Response.Create().WithNotFound());
         }
+        protected override TestServer CreateServer(IWebHostBuilder builder)
+        {
+            return base.CreateServer(builder);
+        }
+        protected override IHostBuilder CreateHostBuilder()
+        {             
+            return Program.CreateWebHostBuilder();
+        }
+        protected override IWebHostBuilder CreateWebHostBuilder()
+        {
+            return base.CreateWebHostBuilder();
+        }
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder
@@ -74,7 +88,7 @@ namespace Service.Integration.Tests
                 {
                     Dict.Add("Database:ConnectionString", Runner.ConnectionString);
                     config.AddInMemoryCollection(Dict);
-                }).ConfigureServices((build, collection) =>
+                })  .ConfigureServices((build, collection) =>
                 {
                     collection.AddSingleton(InMemoryBus);
                     collection.AddSingleton<ITracer>(new Tracer.Builder("IntegrationTest").Build());

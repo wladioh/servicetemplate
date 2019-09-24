@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Winton.Extensions.Configuration.Consul;
 
 namespace Service.Infra.ConfigurationService
@@ -11,7 +12,7 @@ namespace Service.Infra.ConfigurationService
     public static class ConsulExtensions
     {
         private static readonly CancellationTokenSource CancellationToken = new CancellationTokenSource();
-        public static IWebHostBuilder ConfigureConsul(this IWebHostBuilder webHostBuilder)
+        public static IHostBuilder  ConfigureConsul(this IHostBuilder  webHostBuilder)
         {
             webHostBuilder.ConfigureAppConfiguration((context, configurationBuilder) =>
             {
@@ -33,7 +34,7 @@ namespace Service.Infra.ConfigurationService
         }
         public static IApplicationBuilder UseConsul(this IApplicationBuilder app)
         {
-            var lifeTime = app.ApplicationServices.GetService<IApplicationLifetime>();
+            var lifeTime = app.ApplicationServices.GetService<IHostApplicationLifetime>();
             lifeTime.ApplicationStopping.Register(CancellationToken.Cancel);
             return app;
         }

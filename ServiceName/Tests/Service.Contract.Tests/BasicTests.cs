@@ -66,7 +66,7 @@ namespace Service.Contract.Tests
             //Act / Assert
             IPactVerifier pactVerifier = new PactVerifier(_config);
 
-            pactVerifier.ProviderState($"{_pactServiceUri}/provider-states")
+            pactVerifier.ProviderState($"{_pactServiceUri}/provider/states")
                 .ServiceProvider("Self sample API", _providerUri)
                 .HonoursPactWith("ServiceName")
                 .PactUri("http://localhost:9292/pacts/provider/Self%20sample%20API/consumer/ServiceName/latest")

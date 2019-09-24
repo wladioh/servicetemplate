@@ -21,7 +21,7 @@ namespace Service.Api.Handlers
         public Task Handle(TestMessage message)
         {
             //_tracer.ActiveSpan.Finish();
-            return Task.CompletedTask; // _bus.Reply(message);
+            return _bus.Reply(message);
         }
 
         public Task Handle(OtherMessage message)
